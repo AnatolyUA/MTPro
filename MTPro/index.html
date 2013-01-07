@@ -13,35 +13,9 @@
         <link href="styles/main.css" rel="stylesheet" />
     </head>
     <body>
-        <div data-role="view" id="tabstrip-home" data-title="Hello World!">
-            <h1>Welcome!</h1>
-            <p>
-                Icenium&trade; enables you to build cross-platform device applications regardless of your 
-                development platform by combining the convenience of a local development toolset with the 
-                power and flexibility of the cloud.
-            </p>
-        </div>
 
-        <div data-role="view" id="tabstrip-uiinteraction" data-title="UI Interaction">
-            <h1>Say Hello!</h1>
-            <div id='helloWorldInput'>
-                <label for="txtName" style="display: inline-block;">Enter your name:</label>
-                <input type="text" id="txtName" value="" />
-            </div>
-            <div id='helloWorldText' style="display:block;"></div>
-            <div class="buttonArea">
-                <a id="resetButton" data-role="button" data-click="sayHelloReset" data-icon="refresh">Reset</a>
-                <a id="submitButton" data-role="button" data-click="sayHello" data-icon="compose">Submit</a>
-            </div>
-        </div>
-
-        <div data-role="view" id="tabstrip-geolocation" data-title="Geolocation">
-            <h1>My Location</h1>
-            <div id="geoLocationContainer">
-                <div id="myLocation">Unable to get location information. Please check your network connection and try again.</div>
-                <a id="refreshMap" data-role="button" data-click="getLocation" data-icon="refresh">Refresh Location</a>
-                <div id="map_canvas"></div>
-            </div>
+        <div data-role="view" data-init="newsListInit" data-title="Latest news" id="tabstrip-newsList">
+            <ul id="newsList"></ul>
         </div>
 
         <div data-role="layout" data-id="mobile-tabstrip">
@@ -53,15 +27,68 @@
 
             <div data-role="footer">
                 <div data-role="tabstrip">
-                    <a href="#tabstrip-home" data-icon="home">Home</a>
-                    <a href="#tabstrip-uiinteraction" data-icon="share">UI Interaction</a>
-                    <a href="#tabstrip-geolocation" data-icon="globe">Geolocation</a>
+                    <a href="#tabstrip-newsList" data-icon="home">Home</a>
                 </div>
             </div>
         </div>
 
         <script>
             var app = new kendo.mobile.Application(document.body, { transition: "slide", layout: "mobile-tabstrip" });
+        </script>
+
+
+
+
+
+
+        <script id="newsList-template" type="text/x-kendo-template">
+            <div class="Story">
+                #if (ImageSrc) { #
+                    <img class="pullImage" src="#= ImageSrc #" alt="#= Title #" />
+                # } #
+                <h2>#= Title #</h2>
+                <p>#= Description #</p>
+                <div class="metadata">
+                    #= kendo.toString(new Date(parseInt(DatePublished.substr(6))), "dd MMM HH:mm") #
+                </div>
+            </div>
+        </script>
+
+
+        <script>
+            function newsListInit() {
+                var dataSource = new kendo.data.DataSource({
+                    pageSize: 12,
+                    serverPaging: true,
+                    transport: {
+                        read: {
+                            url: "http://api.maritimeprofessional.com/json/StreamNews", // the remove service url
+                            dataType: "jsonp" // JSONP (JSON with padding) is required for cross-domain AJAX
+                        },
+                        parameterMap: function(options) {
+                            var parameters = {
+                                imageWidth:80,
+                                ImageHeight:60,
+                                take: options.pageSize,
+                                skip: options.skip
+                                // page: options.page //next page
+                            }
+
+                            return parameters;
+                        }
+                    },
+                    schema: { // describe the result format
+                        data: "Stories" // the data which the data source will be bound to is in the "results" field
+                    }
+                });
+
+                $("#newsList").kendoMobileListView({
+                    dataSource: dataSource,
+                    template: $("#newsList-template").text(),
+                    endlessScroll: true,
+                    scrollTreshold: 30 //treshold in pixels
+                });
+            }
         </script>
     </body>
 </html>
