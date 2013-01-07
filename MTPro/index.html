@@ -143,6 +143,8 @@
             var storyTemplate = kendo.template($("#storyTemplate").html());
             var timeoutVal = 10000;
             function readStory(e) {
+                e.view.scroller.reset();
+
                 var storyId = e.view.params.storyId;
                 currentStoryId = storyId;
                 $("#StoryContent").html("Please, wait...");
