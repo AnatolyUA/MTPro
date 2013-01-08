@@ -18,6 +18,14 @@
             <ul id="newsList"></ul>
         </div>
 
+        <div data-role="view" data-show="readStory" data-model="viewModelStory" id="StoryModel">
+            <h1 data-bind="text: Title"></h1>
+            <div data-bind="visible: HasImages">Image Available</div>
+            <p data-bind="text: Author" class="author"></p>
+            <p data-bind="text: DatePublished" class="date"></p>
+            <div data-bind="html: ContentHtml"></div>
+        </div>
+
         <div data-role="view" id="connectionError" data-title="Network error">
             <p>Can't connect to the remote server. </p>
             <a id="btnRetry" data-role="button" data-click="onRetryClick">Retry</a>
@@ -58,15 +66,15 @@
 
 
         <script id="newsList-template" type="text/x-kendo-template">
-            <a href="\\#Story?storyId=#= StoryEid #">
+            <a href="\\#StoryModel?storyId=#= StoryEid #" data-storyid="#= StoryEid #">
                 <div class="Story">
                     #if (ImageSrc) { #
                         <img class="pullImage" src="#= ImageSrc #" alt="#= Title #" />
                     # } #
                     <h2>#= Title #</h2>
-                    <p>#= Description #</p>
+                    <p class="description">#= Description #</p>
                     <div class="metadata">
-                        #= kendo.toString(new Date(parseInt(DatePublished.substr(6))), "dd MMM HH:mm") #
+                        <span class="date">#= kendo.toString(new Date(parseInt(DatePublished.substr(6))), "dd MMM HH:mm") #</span>
                     </div>
                 </div>
             </a>
@@ -82,6 +90,30 @@
 
 
         <script>
+            var viewModelStory = new kendo.observable({
+                StoryEID: "",
+                Title:"",
+                Author:"",
+                DatePublished:"",
+                ContentHtml:"",
+                ImageHtml: "",
+                HasImages: function() {
+                    if (this.ImageHtml != "")
+                        return true;
+                    return false;
+                },
+                setFieldsFromListClick: function(e) {
+                    var that = this;
+                    var storyId = e.item.find("a").data("storyid");
+                    if (storyId) {
+                        that.set("StoryEID", storyId);
+                        that.set("Title", e.item.find("h2").html());
+                        // that.set("Author", e.item.find("p.description").html());
+                        that.set("DatePublished", e.item.find("span.date").html());
+                        that.set("ContentHtml", "<p>" + e.item.find("p.description").html() + "</p>");
+                    }
+                }
+            });
 
 
             function newsListInit() {
@@ -124,11 +156,9 @@
                     dataSource: dataSource,
                     template: $("#newsList-template").text(),
                     endlessScroll: true,
-//                    click: function (e) {
-//                        if (e.dataItem && e.dataItem.StoryEid) {
-//                            readStory(e.dataItem.StoryEid);
-//                        }
-//                    },
+                    click: function (e) {
+                        viewModelStory.setFieldsFromListClick(e);
+                    },
                     scrollTreshold: 30 //treshold in pixels
                 });
             }
@@ -157,6 +187,14 @@
                     success: function(data) {
                         window.app.hideLoading();
                         $("#StoryContent").html(storyTemplate(data));
+
+
+
+                        viewModelStory.set("StoryEID", data.StoryEID);
+                        viewModelStory.set("Title", data.Title);
+                        viewModelStory.set("Author", data.Author);
+                        viewModelStory.set("DatePublished", kendo.toString(new Date(parseInt(data.DatePublished.substr(6))), "dd MMM HH:mm"));
+                        viewModelStory.set("ContentHtml", data.ContentHTML);
                     },
                     error: function(xmlhttprequest, textstatus, message) {
                         if (message === "timeout") {
