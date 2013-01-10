@@ -11,6 +11,25 @@
 
         <link href="kendo/styles/kendo.mobile.all.min.css" rel="stylesheet" />
         <link href="styles/main.css" rel="stylesheet" />
+        <style>
+            .pullImage {
+                width: 80px;
+                height: 80px;
+                border-radius: 3px;
+                float: left;
+                margin-right: 10px;
+            }
+            .date {
+                float: right;
+                font-size: 0.8em;
+                color: #808080;
+            }
+
+            #scrollview div div {
+                white-space:normal;
+            }
+
+        </style>
     </head>
     <body>
 
@@ -73,7 +92,7 @@
 
 <!-- <a href="\\#StoryModel?storyId=#= StoryEid #" data-storyid="#= StoryEid #"> -->
         <script id="newsList-template" type="text/x-kendo-template">
-            <a>
+
                 <div class="Story"  data-storyid="#= StoryEid #">
                     #if (ImageSrc) { #
                         <img class="pullImage" src="#= ImageSrc #" alt="#= Title #" />
@@ -82,7 +101,7 @@
                     <p class="description">#= Description # <span class="date">#= kendo.toString(new Date(parseInt(DatePublished.substr(6))), "dd MMM HH:mm") #</span></p>
 
                 </div>
-            </a>
+
         </script>
 
         <script type="text/x-kendo-template" id="story-template">
@@ -381,24 +400,6 @@
             }
 
         </script>
-    <style>
-        .pullImage {
-            width: 80px;
-            height: 80px;
-            border-radius: 3px;
-            float: left;
-            margin-right: 10px;
-        }
-        .date {
-            float: right;
-            font-size: 0.8em;
-            color: #808080;
-        }
 
-        #scrollview div div {
-            white-space:normal;
-        }
-
-    </style>
     </body>
 </html>
