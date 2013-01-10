@@ -33,7 +33,7 @@
     </head>
     <body>
 
-        <div data-role="view" data-init="newsListInit" data-title="Latest news" id="tabstrip-newsList">
+        <div data-role="view" data-show="viewModelStoriesList.initScrollViewContent" data-init="newsListInit" data-title="Maritime Professional News" id="tabstrip-newsList">
             <ul id="newsList"></ul>
         </div>
 
@@ -45,7 +45,7 @@
             <div data-bind="html: ContentHtml"></div>
         </div>
 
-        <div data-role="view" id="StoriesListSlider">
+        <div data-role="view" id="StoriesListSlider" data-show="scrollTop">
             <div id="scrollview-container">
                 <div id="scrollview"></div>
             </div>
@@ -170,13 +170,32 @@
 
                     $("#scrollview").kendoMobileScrollView({
                         change: function(e) {
-                            that.addContentToScrollViewPage(e.page);
-                            that.addContentToScrollViewPage(e.page + 1);
-                            that.addContentToScrollViewPage(e.page - 1);
+                            that.populateScrollVewContent(e.page);
                         }
                     });
 
                     return $("#scrollview").data("kendoMobileScrollView");
+                },
+                populateScrollVewContent: function(page) {
+                    var that = this;
+                    that.addContentToScrollViewPage(page);
+                    that.addContentToScrollViewPage(page + 1);
+                    that.addContentToScrollViewPage(page - 1);
+                    that.clearContentOfScrollVewPage(page - 2);
+                    that.clearContentOfScrollVewPage(page + 2);
+                    if (scrollerInstance)
+                        scrollerInstance.reset();
+
+                },
+                populateScrollVewContentByEvent: function(e) {
+                    var page = viewModelStoriesList.getScrollView().page;
+
+                    viewModelStoriesList.populateScrollVewContent(page);
+                },
+                clearContentOfScrollVewPage: function(page) {
+                    var divIndex = page + 1;
+                    if (page >= 0 && page <= this.StoriesIndex.length)
+                        $("#scrollview div div:nth-child(" + divIndex + ")").html("");
                 },
                 navigateToStoryId: function(storyId) {
                     window.app.navigate("#StoriesListSlider");
@@ -184,10 +203,7 @@
                     var page = that.getStoryIdPage(storyId);
                     if (page != -1) {
                         that.getScrollView().scrollTo(page);
-                        that.addContentToScrollViewPage(page);
-                        that.addContentToScrollViewPage(page + 1);
-                        that.addContentToScrollViewPage(page - 1);
-
+                        that.populateScrollVewContent(page);
                     }
 
                 },
@@ -276,13 +292,15 @@
                     that.addContentToScrollViewPage(page);
                 },
                 initScrollViewContent: function() {
-                    var that = this;
-                    var count = that.StoriesIndex.length;
-                    var content = "";
-                    for (var i = 0; i < count; i++) {
-                        content = content + '<div data-role="page"></div>';
+                    if (viewModelStoriesList.StoriesIndex) {
+                        var count = viewModelStoriesList.StoriesIndex.length;
+                        var content = "";
+                        for (var i = 0; i < count; i++) {
+                            content = content + '<div data-role="page"></div>';
+                        }
+                        viewModelStoriesList.getScrollView().content(content);
+                        // viewModelStoriesList.populateScrollVewContent(that.getScrollView().page);
                     }
-                    that.getScrollView().content(content);
                 },
                 reset: function(){
                     var that = this;
@@ -397,6 +415,12 @@
                         window.app.navigate("#Story?storyId=" + currentStoryId);
                     }
                 });
+            }
+
+            var scrollerInstance = null;
+            function scrollTop(e) {
+                scrollerInstance = e.view.scroller;
+                scrollerInstance.reset();
             }
 
         </script>
