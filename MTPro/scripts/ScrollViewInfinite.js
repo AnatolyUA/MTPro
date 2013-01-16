@@ -24,15 +24,17 @@
             that.templates.shortItem = kendo.template(that.options.shortItemTemplate);
             that.templates.emptyPage = that.options.emptyTemplate;
 
+
             // begin with one page
             that.element.html('<div data-role="page">' + that.templates.emptyPage + '</div>');
             that.element.kendoMobileScrollView({
                 change: function(e) {
                     var page = that._currentState[e.page];
-                    setTimeout(function(){
-                        that.navigateTo(page);
-                    }, 300);
+                    if (that.element.parents("[data-role=view]").data("kendoMobileView")) that.element.parents("[data-role=view]").data("kendoMobileView").scroller.reset();
 
+                    setTimeout(function() {
+                        that.navigateTo(page);
+                    }, 100);
                 }
             });
             that._ScrollView = that.element.data("kendoMobileScrollView");
@@ -68,7 +70,8 @@
             that._ScrollView.content(content);
             that._ScrollView.refresh();
 
-            that._ScrollView.duration = 1;
+            that._ScrollView.duration = 0.1;
+            that._ScrollView.options.duration = 0.1;
             that._ScrollView.scrollTo(activePage);
 
             for (var i = 0; i < that._currentState.length; i++) {
@@ -78,6 +81,7 @@
 
             // that.navigateTo(that._activeId);
             that._ScrollView.duration = 300;
+            that._ScrollView.options.duration = 300;
         },
 
         getItemHtml: function(id) {
@@ -193,7 +197,7 @@
             url: "http://api.maritimeprofessional.com/json/Story",
 
             // templates
-            fullItemTemplate: "<h1>#= Title #</h1><h1>#= StoryEID #</h1>",
+            fullItemTemplate: "<h1>#= Title #</h1><h1>#= StoryEID #</h1> #= ContentHTML #",
             shortItemTemplate: "<h1>#= StoryEID #</h1><div class='scroll-view-infinite-loader'></div>",
             emptyTemplate: "<div class='scroll-view-infinite-loader'></div>",
 
