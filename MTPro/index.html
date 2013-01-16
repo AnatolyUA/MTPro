@@ -42,7 +42,7 @@
             <ul id="newsList"></ul>
 
 
-            <div data-role="popover" id="popover-people" data-popup='{"height": 230, "width": 350}'>
+            <div data-role="popover" id="popover-people">
                 <div data-role="view" data-title="People">
                     <div data-role="header">
                         <div data-role="navbar">
@@ -61,7 +61,7 @@
                 </div>
             </div>
 
-            <div data-role="popover" id="popover-location" data-popup='{"height": 140, "width": 350}'>
+            <div data-role="popover" id="popover-location">
                 <div data-role="view">
                     <ul data-role="listview" data-click="closeParentPopover">
                         <li><label>Sydney, Australia <input name="location" type="radio"></label></li>
@@ -102,6 +102,7 @@
                 <div data-role="navbar">
                     <span data-role="view-title"></span>
                     <a data-align="right" href="#popover-location" data-rel="popover" data-role="button">Select location</a>
+                    <a data-align="left" data-rel="popover" href="#popover-people" data-role="button">Select people</a>
                 </div>
             </header>
 
@@ -109,7 +110,6 @@
                 <div data-role="tabstrip">
                     <a href="#tabstrip-newsList" data-icon="home">Home</a>
                     <a href="#StoriesListSlider" data-icon="globe">List</a>
-                    <a data-align="right" data-rel="popover" href="#popover-people" data-role="button">Select people</a>
 
 
                 </div>
