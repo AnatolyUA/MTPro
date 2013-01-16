@@ -56,6 +56,26 @@
                     }
                 // }
             }
+
+            if(!that._ScrollView.dimensions.enabled) {
+                setTimeout(function(){
+                    that._refresh();
+                }, 50);
+            }
+
+
+        },
+
+        _refresh: function() {
+            var that = this;
+            that._ScrollView.refresh();
+            that._ScrollView.scrollTo(that._currentState.indexOf(that._activeId));
+        },
+
+        refresh: function(e) {
+//            var that = e.sender.element.find("[data-role=scrollviewinfinite]").data("kendoScrollViewInfinite");
+//            that._ScrollView.refresh();
+//            that._ScrollView.scrollTo(that._currentState.indexOf(that._activeId));
         },
 
         regeneratePages: function() {
