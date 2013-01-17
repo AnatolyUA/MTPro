@@ -33,7 +33,7 @@
     </head>
     <body>
 
-    <div data-role="view" id="test" data-show="scrollViewInfinite.refresh">
+    <div data-role="view" id="test">
         <div id="sv"></div>
     </div>
 
@@ -41,15 +41,15 @@
             <ul id="newsList"></ul>
 
 
-            <div data-role="popover" id="popover-people" data-open="openPopover">
-                <div data-role="view" data-title="People">
+            <div data-role="popover" id="popover-categories" data-open="openPopover">
+                <div data-role="view" data-title="Categories">
                     <div data-role="header">
                         <div data-role="navbar">
                             <span data-role="view-title"></span>
                             <a data-role="button" data-align="right" data-click="closeParentPopover">Close</a>
                         </div>
                     </div>
-                    <ul data-role="listview" id="catlist"  data-model="NewsCategories" data-bind="source: categories" data-template="row-category"></ul>
+                    <ul id="catlist"></ul>
                 </div>
             </div>
 
@@ -85,7 +85,7 @@
             <header data-role="header">
                 <div data-role="navbar">
                     <span data-role="view-title"></span>
-                    <a data-align="left" data-rel="popover" href="#popover-people" data-role="button">Select people</a>
+                    <a data-align="left" data-rel="popover" href="#popover-categories" data-role="button">Categories</a>
                 </div>
             </header>
 

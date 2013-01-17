@@ -11,9 +11,6 @@
 
             // call the base function to create the widget
             Widget.fn.init.call(this, element, options);
-
-
-
             this._create();
         },
 
@@ -38,14 +35,11 @@
                 }
             });
             that._ScrollView = that.element.data("kendoMobileScrollView");
-
-
         },
 
         navigateTo: function(id) {
             var that = this;
             if (id != that._activeId) {
-                // if(that._currentState.indexOf(id) !== -1) {
                     that._activeId = id;
                     var item = that.getFromCache(id);
                     if (item !== -1) {
@@ -54,26 +48,24 @@
                         that._currentState = [id];
                         that.regeneratePages();
                     }
-                // }
             }
 
-            if(!that._ScrollView.dimensions.enabled) {
-                setTimeout(function(){
-                    that._refresh();
-                }, 50);
-            }
-
-
-        },
-
-        _refresh: function() {
-//            var that = this;
-//            that._ScrollView.refresh();
-//            that._ScrollView.scrollTo(that._currentState.indexOf(that._activeId));
+            setTimeout(function(){
+                if(!that._eventAssigned) {
+                    var view = that.element.parents("[data-role=view]").data("kendoMobileView");
+                    if (view) {
+                        view.bind("show", function(e){
+                            that.refresh();
+                        });
+                        that._eventAssigned = true;
+                    }
+                }
+            }, 50);
         },
 
         refresh: function(e) {
-            var that = e.sender.element.find("[data-role=scrollviewinfinite]").data("kendoScrollViewInfinite");
+            // var that = e.sender.element.find("[data-role=scrollviewinfinite]").data("kendoScrollViewInfinite");
+            var that = this;
             that._ScrollView.refresh();
             that._ScrollView.scrollTo(that._currentState.indexOf(that._activeId));
         },
@@ -203,8 +195,10 @@
 
         _ScrollView: null,
 
-        _itemsCache:[],
+        _itemsCache:[], // TODO реализовать очитску кеша
         _itemsOrder: [], // Самые свежие в начале, старые, которые можно удалить, в конце
+
+        _eventAssigned: false,
 
 
 
@@ -218,8 +212,8 @@
 
             // templates
             fullItemTemplate: "<h1>#= Title #</h1><h1>#= StoryEID #</h1> #= ContentHTML #",
-            shortItemTemplate: "<h1>#= StoryEID #</h1><div class='scroll-view-infinite-loader'></div>",
-            emptyTemplate: "<div class='scroll-view-infinite-loader'></div>",
+            shortItemTemplate: "<h1>#= StoryEID #</h1><div class='km-loader' style='margin-top:200px; text-align: center; padding: 100px'><span class='km-loading km-spin'></span></div>",
+            emptyTemplate: "<div class='km-loader' style='margin-top:200px; text-align: center; padding: 100px'><span class='km-loading km-spin'></span></div>",
 
             // Id fields names
             cIdName: "StoryEID", // current / active
