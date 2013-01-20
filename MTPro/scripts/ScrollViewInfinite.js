@@ -82,9 +82,14 @@
             that._ScrollView.content(content);
             that._ScrollView.refresh();
 
-            that._ScrollView.duration = 0.1;
-            that._ScrollView.options.duration = 0.1;
-            that._ScrollView.scrollTo(activePage);
+//            that._ScrollView.duration = 0.1;
+//            that._ScrollView.options.duration = 0.1;
+//            that._ScrollView.scrollTo(activePage);
+            that._ScrollView.transition.moveTo({
+                location: -activePage * that._ScrollView.dimension.getSize(),
+                duration: 0.1,
+                ease: kendo.fx.Transition.easeOutExpo
+            });
 
             for (var i = 0; i < that._currentState.length; i++) {
                 if (i != activePage)
@@ -92,8 +97,9 @@
             }
 
             // that.navigateTo(that._activeId);
-            that._ScrollView.duration = 300;
-            that._ScrollView.options.duration = 300;
+
+            // that._ScrollView.duration = 300;
+            // that._ScrollView.options.duration = 300;
         },
 
         getItemHtml: function(id) {

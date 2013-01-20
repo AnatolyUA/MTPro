@@ -1,12 +1,12 @@
 ﻿<!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <title></title>
         <meta charset="utf-8" />
         <script src="cordova.js"></script>
         <script src="kendo/js/jquery.min.js"></script>
         <script src="kendo/js/kendo.mobile.min.js"></script>
-        <script src="scripts/hello-world.js"></script>
+        <script src="scripts/newsCategories.js"></script>
         <script src="scripts/ScrollViewInfinite.js"></script>
 
         <link href="kendo/styles/kendo.mobile.all.min.css" rel="stylesheet" />
@@ -49,7 +49,7 @@
                             <a data-role="button" data-align="right" data-click="closeParentPopover">Close</a>
                         </div>
                     </div>
-                    <ul id="catlist"></ul>
+                    <ul id="newsCategoriesList"></ul>
                 </div>
             </div>
 
@@ -103,9 +103,9 @@
             var app = new kendo.mobile.Application(document.body, {
                 transition: "slide",
                 layout: "mobile-tabstrip",
-                initial: "tabstrip-newsList",
-                platform: "ios"
+                initial: "tabstrip-newsList"
             });
+            newsCategories.init();
         </script>
 
 
@@ -152,14 +152,21 @@
                 <p class="date">#= DatePublished #</p>
                 <p class="author">#= Author #</p>
 
+                
                 #= ContentHtml #
             </div>
         </script>
 
     <script type="text/x-kendo-template" id="row-category">
-
         <li><label>#= CategoryDisplay #<input type="checkbox"></label></li>
+    </script>
 
+    <script type="text/x-kendo-template" id="full-news-item">
+        <h1>#= Title #</h1>
+        <p class="date">#= kendo.toString(new Date(parseInt(DatePublished.substr(6))), "dd MMM HH:mm") #</p>
+        <p class="author">#= Author #</p>
+
+        #= ContentHTML #
     </script>
 
 
@@ -346,7 +353,9 @@
 
 
 
-            $("#sv").kendoScrollViewInfinite();
+            $("#sv").kendoScrollViewInfinite({
+                fullItemTemplate: $("#full-news-item").html()
+            });
             var scrollViewInfinite = $("#sv").data("kendoScrollViewInfinite");
 
             var dataSource;
@@ -388,7 +397,7 @@
                     requestEnd: function (e) {
                         window.app.hideLoading();
                         var data = e.response.Stories;
-                        viewModelStoriesList.addStories(data);
+                        // viewModelStoriesList.addStories(data);
                         // var listView = $("#newsList").data("kendoMobileListView");
 
                     }
