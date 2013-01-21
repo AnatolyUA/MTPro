@@ -50,17 +50,17 @@
                     }
             }
 
-            setTimeout(function(){
-                if(!that._eventAssigned) {
-                    var view = that.element.parents("[data-role=view]").data("kendoMobileView");
-                    if (view) {
-                        view.bind("show", function(e){
-                            that.refresh();
-                        });
-                        that._eventAssigned = true;
-                    }
-                }
-            }, 50);
+            if(!that._eventAssigned) {
+                setTimeout(function(){
+                        var view = that.element.parents("[data-role=view]").data("kendoMobileView");
+                        if (view) {
+                            view.bind("show", function(e){
+                                that.refresh();
+                            });
+                            that._eventAssigned = true;
+                        }
+                }, 50);
+            }
         },
 
         refresh: function(e) {
@@ -123,7 +123,6 @@
                     that._currentState = newState;
                     that.regeneratePages();
                 }
-
             }
         },
 

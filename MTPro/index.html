@@ -6,6 +6,11 @@
         <script src="cordova.js"></script>
         <script src="kendo/js/jquery.min.js"></script>
         <script src="kendo/js/kendo.mobile.min.js"></script>
+
+
+
+
+
         <script src="scripts/newsCategories.js"></script>
         <script src="scripts/ScrollViewInfinite.js"></script>
 
@@ -103,7 +108,8 @@
             var app = new kendo.mobile.Application(document.body, {
                 transition: "slide",
                 layout: "mobile-tabstrip",
-                initial: "tabstrip-newsList"
+                initial: "tabstrip-newsList",
+                platform: "ios"
             });
             newsCategories.init();
         </script>
