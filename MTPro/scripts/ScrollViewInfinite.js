@@ -21,17 +21,17 @@
             that.templates.shortItem = kendo.template(that.options.shortItemTemplate);
             that.templates.emptyPage = that.options.emptyTemplate;
 
+            // $(document).bind("TRANSITION-END", that._transitionEnd);
 
             // begin with one page
             that.element.html('<div data-role="page">' + that.templates.emptyPage + '</div>');
             that.element.kendoMobileScrollView({
                 change: function(e) {
-                    var page = that._currentState[e.page];
+                    var id = that._currentState[e.page];
                     if (that.element.parents("[data-role=view]").data("kendoMobileView")) that.element.parents("[data-role=view]").data("kendoMobileView").scroller.reset();
 
-                    setTimeout(function() {
-                        that.navigateTo(page);
-                    }, 300);
+                    that.navigateTo(id);
+
                 }
             });
             that._ScrollView = that.element.data("kendoMobileScrollView");
@@ -80,8 +80,6 @@
                 content = content + '<div data-role="page">' + activePageHtml + '</div>';
             }
             that._ScrollView.content(content);
-            that._ScrollView.refresh();
-
 
             that._ScrollView.transition.moveTo({
                 location: -activePage * that._ScrollView.dimension.getSize(),
@@ -89,9 +87,26 @@
                 ease: kendo.fx.Transition.easeOutExpo
             });
 
-            for (var i = 0; i < that._currentState.length; i++) {
-                if (i != activePage)
-                    that.updatePage(i, that.getItemHtml(that._currentState[i]));
+            that._lock = true;
+            setTimeout($.proxy(that._updateInvisiblePages, that), 10);
+        },
+
+        _lock: false,
+        _updateInvisiblePages: function() {
+            var that = this
+            if (that._lock) {
+                var that = this;
+                var activePage = that._currentState.indexOf(that._activeId);
+                if (activePage == that._ScrollView.page) {
+                    that._lock = false;
+                    for (var i = 0; i < that._currentState.length; i++) {
+                        if (i != activePage)
+                            that.updatePage(i, that.getItemHtml(that._currentState[i]));
+                    }
+                    that._ScrollView.refresh();
+                } else {
+                    setTimeout($.proxy(that._updateInvisiblePages, that), 10);
+                }
             }
         },
 
@@ -158,7 +173,6 @@
         updatePage: function(page, html) {
             page++;
             this.element.find("div > div:nth-child(" + page + ")").html(html);
-            this._ScrollView.refresh();
         },
 
         saveToCache: function(item) {
