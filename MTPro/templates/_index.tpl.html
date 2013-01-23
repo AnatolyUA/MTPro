@@ -1,0 +1,24 @@
+
+
+<script type="text/x-kendo-template" id="news-details-template">
+    <h1>#= Title #</h1>
+    <p class="date">#= kendo.toString(new Date(parseInt(DatePublished.substr(6))), "dd MMM HH:mm") #</p>
+    <p class="author">#= Author #</p>
+
+    #= ContentHTML #
+</script>
+
+<script id="news-list-template" type="text/x-kendo-template">
+
+    <a href="\\#test">
+        <div class="Story"  data-storyid="#= StoryEid #">
+            #if (ImageSrc) { #
+            <img class="pullImage" src="#= ImageSrc #" alt="#= Title #" />
+            # } #
+            <h2>#= Title #</h2>
+            <p class="description">#= Description # <span class="date">#= kendo.toString(new Date(parseInt(DatePublished.substr(6))), "dd MMM HH:mm") #</span></p>
+
+        </div>
+    </a>
+
+</script>

@@ -7,12 +7,13 @@
         <script src="kendo/js/jquery.min.js"></script>
         <script src="kendo/js/kendo.mobile.min.js"></script>
 
-
-
-
-
         <script src="scripts/newsCategories.js"></script>
         <script src="scripts/ScrollViewInfinite.js"></script>
+
+        <script src="scripts/templateloader.js"></script>
+        <script src="scripts/index.html.js"></script>
+
+
 
         <link href="kendo/styles/kendo.mobile.all.min.css" rel="stylesheet" />
         <link href="styles/main.css" rel="stylesheet" />
@@ -42,48 +43,30 @@
         <div id="sv"></div>
     </div>
 
-        <div data-role="view" data-show="viewModelStoriesList.initScrollViewContent" data-init="newsListInit" data-title="Maritime Professional News" id="tabstrip-newsList">
-            <ul id="newsList"></ul>
+    <div data-role="view" data-init="MTProApp.updateList" data-title="Maritime Professional News" id="tabstrip-newsList">
+        <ul id="newsList"></ul>
 
-
-            <div data-role="popover" id="popover-categories" data-open="openPopover">
-                <div data-role="view" data-title="Categories">
-                    <div data-role="header">
-                        <div data-role="navbar">
-                            <span data-role="view-title"></span>
-                            <a data-role="button" data-align="right" data-click="closeParentPopover">Close</a>
-                        </div>
+        <div data-role="popover" id="popover-categories" data-open="MTProApp.popoverOpen" data-close="MTProApp.popoverClose">
+            <div data-role="view" data-title="Categories">
+                <div data-role="header">
+                    <div data-role="navbar">
+                        <span data-role="view-title"></span>
+                        <a data-role="button" data-align="right" data-click="closeParentPopover">Close</a>
                     </div>
-                    <ul id="newsCategoriesList"></ul>
                 </div>
-            </div>
-
-
-
-
-        </div>
-
-        <div data-role="view" data-show="readStory" data-model="viewModelStory" id="StoryModel">
-            <h1 data-bind="text: Title"></h1>
-            <div data-bind="visible: HasImages">Image Available</div>
-            <p data-bind="text: Author" class="author"></p>
-            <p data-bind="text: DatePublished" class="date"></p>
-            <div data-bind="html: ContentHtml"></div>
-        </div>
-
-        <div data-role="view" id="StoriesListSlider" data-show="scrollTop">
-            <div id="scrollview-container">
-                <div id="scrollview"></div>
+                <ul id="newsCategoriesList"></ul>
             </div>
         </div>
+
+    </div>
+
+    <div data-role="view" data-show="debug" id="debugView">
+        <ul id="debugInfo"></ul>
+    </div>
 
         <div data-role="view" id="connectionError" data-title="Network error">
             <p>Can't connect to the remote server. </p>
-            <a id="btnRetry" data-role="button" data-click="onRetryClick">Retry</a>
-        </div>
-        <div data-role="view" data-show="refreshStory" id="connectionErrorStory" data-title="Network error">
-            <p>Can't connect to the remote server. Please refresh</p>
-            <a id="refresh" data-role="button">Refresh</a>
+            <a id="refresh">Refresh</a>
         </div>
 
         <div data-role="layout" data-id="mobile-tabstrip">
@@ -97,28 +80,30 @@
             <div data-role="footer">
                 <div data-role="tabstrip">
                     <a href="#tabstrip-newsList" data-icon="home">Home</a>
-                    <a href="#StoriesListSlider" data-icon="globe">List</a>
-
-
+                    <a href="#test" data-icon="globe">Details</a>
+                    <a href="#debugView">Debug</a>
                 </div>
             </div>
         </div>
 
         <script>
+
+
             var app = new kendo.mobile.Application(document.body, {
                 transition: "slide",
                 layout: "mobile-tabstrip",
                 initial: "tabstrip-newsList",
                 platform: "ios"
             });
-            newsCategories.init();
+
+            MTProApp.init(app);
         </script>
 
-
+<!--
         <div data-role="view" id="Story" data-show="readStory">
             <div id="StoryContent"></div>
         </div>
-
+-->
 
 <!-- <a href="\\#StoryModel?storyId=#= StoryEid #" data-storyid="#= StoryEid #"> -->
         <script id="newsList-template" type="text/x-kendo-template">
@@ -177,6 +162,7 @@
 
 
         <script>
+/*
             var viewModelStory = new kendo.observable({
                 StoryEID: "",
                 Title:"",
@@ -355,9 +341,9 @@
                 }
             });
             // kendo.bind($("#StoriesListSlider"), viewModelStoriesList);
+*/
 
-
-
+/*
 
             $("#sv").kendoScrollViewInfinite({
                 fullItemTemplate: $("#full-news-item").html()
@@ -449,13 +435,21 @@
                 window.app.navigate("#tabstrip-newsList");
             }
 
-
+            function debug() {
+                var debugInfo = "<li>Страница: " + scrollViewInfinite._ScrollView.page + "</li>" +
+                        "<li>Id новости: " + scrollViewInfinite._activeId + "</li>" +
+                        "<li>Текущее состояние: " + scrollViewInfinite._currentState + "</li>" +
+                        "<li>" + (scrollViewInfinite._ScrollView.page != scrollViewInfinite._currentState.indexOf(scrollViewInfinite._activeId)) + "</li>" +
+                        "<li>" + scrollViewInfinite._checkIntegrityCounter + "</li>";
+                $("#debugInfo").html(debugInfo);
+            }
+*/
+/*
             var currentStoryId = "";
             var storyTemplate = kendo.template($("#story-template").html());
             var timeoutVal = 10000;
             function readStory(e) {
                 e.view.scroller.reset();
-
                 var storyId = e.view.params.storyId;
                 currentStoryId = storyId;
                 $("#StoryContent").html("Please, wait...");
@@ -484,18 +478,9 @@
                         }
                     }
                 });
-
             }
+*/
 
-            function refreshStory() {
-                window.app.hideLoading();
-                $("#refresh").kendoMobileButton({
-                    icon: "refresh",
-                    click: function(e) {
-                        window.app.navigate("#Story?storyId=" + currentStoryId);
-                    }
-                });
-            }
 
             var scrollerInstance = null; ///////
             function scrollTop(e) {
@@ -509,12 +494,7 @@
             }
 
             var v;
-            function openPopover(e) {
-                var popover = e.sender.element.parent();
-                v = app.pane.viewEngine.view().element.find("[data-role=content]");
-                popover.height(v.height() - 20);
-                popover.width(v.width() - 30);
-            }
+
 
 //            var s;
 //            function sv(num, start) {

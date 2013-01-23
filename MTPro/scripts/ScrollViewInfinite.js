@@ -3,7 +3,14 @@
     // shorten references to variables. this is better for uglification 
     var kendo = window.kendo,
         ui = kendo.ui,
-        Widget = ui.Widget
+        Widget = ui.Widget,
+        _i = 0,
+        _debug = function(s) {
+            s = "!>>> " + _i + ": " + s;
+            console.log(s);
+            $("#debugInfo").append("<li>" + s + "</li>")
+            _i++;
+        };
 
     var ScrollViewInfinite = Widget.extend({
 
@@ -16,28 +23,40 @@
 
         // create ScrollView element and assigning it to _ScrollView
         _create: function() {
+            _debug("Создали виджет");
             var that = this;
             that.templates.fullItem = kendo.template(that.options.fullItemTemplate);
             that.templates.shortItem = kendo.template(that.options.shortItemTemplate);
             that.templates.emptyPage = that.options.emptyTemplate;
 
-            // $(document).bind("TRANSITION-END", that._transitionEnd);
 
             // begin with one page
             that.element.html('<div data-role="page">' + that.templates.emptyPage + '</div>');
             that.element.kendoMobileScrollView({
                 change: function(e) {
+
                     var id = that._currentState[e.page];
                     if (that.element.parents("[data-role=view]").data("kendoMobileView")) that.element.parents("[data-role=view]").data("kendoMobileView").scroller.reset();
-
                     that.navigateTo(id);
-
+                    _debug("Смена состояния, переход на: " + id);
                 }
             });
             that._ScrollView = that.element.data("kendoMobileScrollView");
+
+            // that._checkIntegrityTimer = setInterval($.proxy(that._checkIntegrity, that), 1000);
         },
 
+/*        _checkIntegrityTimer: null,
+        _checkIntegrityCounter: 0,
+        _checkIntegrity: function() {
+            var that = this;
+            that._checkIntegrityCounter++;
+            if (!that._lock && that._ScrollView.page != that._currentState.indexOf(that._activeId))
+                that.navigateTo(that._activeId);
+        },*/
+
         navigateTo: function(id) {
+            _debug("Переходим на " + id);
             var that = this;
             if (id != that._activeId) {
                     that._activeId = id;
@@ -64,6 +83,7 @@
         },
 
         refresh: function(e) {
+            _debug("refresh");
             // var that = e.sender.element.find("[data-role=scrollviewinfinite]").data("kendoScrollViewInfinite");
             var that = this;
             that._ScrollView.refresh();
@@ -71,10 +91,12 @@
         },
 
         regeneratePages: function() {
+
             var that = this,
                 content = "",
                 activePage = that._currentState.indexOf(that._activeId),
                 activePageHtml = that.getItemHtml(that._activeId);
+            _debug("regeneratePages: " + that._currentState + " акт. стр. " + activePage);
 
             for (var i = 0; i < that._currentState.length; i++) {
                 content = content + '<div data-role="page">' + activePageHtml + '</div>';
@@ -88,6 +110,7 @@
             });
 
             that._lock = true;
+            _debug("_lock = true");
             setTimeout($.proxy(that._updateInvisiblePages, that), 10);
         },
 
@@ -99,12 +122,14 @@
                 var activePage = that._currentState.indexOf(that._activeId);
                 if (activePage == that._ScrollView.page) {
                     that._lock = false;
+                    _debug("_updateInvisiblePages: _lock = false");
                     for (var i = 0; i < that._currentState.length; i++) {
                         if (i != activePage)
                             that.updatePage(i, that.getItemHtml(that._currentState[i]));
                     }
                     that._ScrollView.refresh();
                 } else {
+                    _debug("_updateInvisiblePages Перевыставляем таймер");
                     setTimeout($.proxy(that._updateInvisiblePages, that), 10);
                 }
             }
@@ -115,6 +140,7 @@
                 item = that.getFromCache(id),
                 html = that.templates.emptyPage;
 
+            _debug("getItemHtml " + id);
             if (item !== -1) {
                 if (!item.IsShort) return that.templates.fullItem(item);
                 html = that.templates.shortItem(item);
@@ -131,26 +157,31 @@
             var newState = [item[cIdName]];
 
             if (item[cIdName] == that._activeId) {
+                _debug("refreshStatus " + that._currentState + "/" + that._activeId);
                 // Только в этом случае что-то делаем
                 if (item[lIdName]) newState.unshift(item[lIdName]);
                 if (item[rIdName]) newState.push(item[rIdName]);
                 if (newState.toString() != that._currentState.toString()) {
                     that._currentState = newState;
+                    _debug("refreshStatus ON " + that._currentState + "/" + that._activeId);
                     that.regeneratePages();
                 }
             }
         },
 
         updateStoryFromServer: function(id) {
+            _debug("updateStoryFromServer " + id);
             var that = this;
             $.ajax({
                 url: that.options.url,
                 data: {
                     id: id
                 },
+                timeout: that.options.timeout,
                 dataType:"jsonp",
                 success: function(data, textStatus, jqXHR) {
                     that.saveToCache(data);
+                    _debug("updateStoryFromServer OK " + id);
 
                     var page = that._currentState.indexOf(data[that.options.cIdName]);
                     if (page !== -1) {
@@ -161,9 +192,8 @@
 
                 },
                 error: function(xmlhttprequest, textstatus, message) {
-                    if (message === "timeout") {
-                        window.app.navigate("#tabstrip-newsList");
-                    }
+                    _debug("updateStoryFromServer ERROR " + id);
+                    that.options.onError(id);
                 }
             });
         },
@@ -171,12 +201,17 @@
 
 
         updatePage: function(page, html) {
+            _debug("updatePage " + page);
             page++;
             this.element.find("div > div:nth-child(" + page + ")").html(html);
         },
 
         saveToCache: function(item) {
             var that = this;
+            while(that._itemsOrder.length > 10) {
+                var idToDel = that._itemsOrder.pop();
+                delete that._itemsCache[idToDel];
+            }
             var cIdName = that.options.cIdName;
             if (!that._itemsCache[item[cIdName]]) {
                 that._itemsCache[item[cIdName]] = item;
@@ -221,6 +256,8 @@
             name: "ScrollViewInfinite",
 
             url: "http://api.maritimeprofessional.com/json/Story",
+            timeout: 10000,
+            onError: function(id) {},
 
             // templates
             fullItemTemplate: "<h1>#= Title #</h1><h1>#= StoryEID #</h1> #= ContentHTML #",

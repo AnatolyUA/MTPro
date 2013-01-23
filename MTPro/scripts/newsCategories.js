@@ -6,6 +6,10 @@
  * To change this template use File | Settings | File Templates.
  */
 var newsCategories = (function($, window) {
+
+    var elmNewsCategoriesSelector = "#newsCategoriesList",
+        tplNewsCategories = '<li data-catid="#= CategoryEID #"><label>#= CategoryDisplay #<input # if ( isSelected ) {# checked="checked" #}# type="checkbox"></label></li>';
+
     var _private = {
         categories: $.parseJSON(localStorage.categories),
         update: function(cats) {
@@ -63,15 +67,19 @@ var newsCategories = (function($, window) {
         refreshList: function() {
             var that = this;
             if(!_private.list) {
-                $("#newsCategoriesList").kendoMobileListView({
+                $(elmNewsCategoriesSelector).kendoMobileListView({
                     dataSource: that.get(),
-                    template: '<li data-catid="#= CategoryEID #"><label>#= CategoryDisplay #<input # if ( isSelected ) {# checked="checked" #}# type="checkbox"></label></li>',
+                    template: tplNewsCategories,
                     click: function (e) {
-                        that.toggle(e.item.data("catid"));
+                        var element = $(e.target.context);
+                        if (element.get(0).tagName == "INPUT") {
+                            that.toggle(e.item.data("catid"));
+                        } else {
+                            // e.preventDefault();
+                        }
                     }
                 });
-
-                _private.list = $("#newsCategoriesList").data("kendoMobileListView");
+                _private.list = $(elmNewsCategoriesSelector).data("kendoMobileListView");
             }
             _private.list.refresh();
         }
