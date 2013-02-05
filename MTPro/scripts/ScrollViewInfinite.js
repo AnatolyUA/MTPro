@@ -1,6 +1,5 @@
 (function($, window) {
-
-    // shorten references to variables. this is better for uglification 
+    // shorten references to variables. this is better for uglification
     var kendo = window.kendo,
         ui = kendo.ui,
         Widget = ui.Widget,
@@ -8,9 +7,29 @@
         _debug = function(s) {
             s = "!>>> " + _i + ": " + s;
             console.log(s);
-            $("#debugInfo").append("<li>" + s + "</li>")
+            $("#debugInfo").append("<li>" + s + "</li>");
             _i++;
         };
+
+    var _currentState = [-1, -1, -1], // массив, содержащий текущие страницы ScrollView
+        _activeId = "",     // Id активной в данный момент новости
+
+        _ScrollView = null,
+
+        _itemsCache = [],
+        _itemsCacheOrder = [], // Самые свежие в начале, старые, которые можно удалить, в конце
+
+        _requestQueue = [],
+
+        _eventAssigned = false,
+
+        cIdName,
+        lIdName,
+        rIdName,
+
+        _itemsIdOrder = [],
+
+        _lockScrollToFast = false;
 
     var ScrollViewInfinite = Widget.extend({
 
@@ -29,19 +48,66 @@
             that.templates.shortItem = kendo.template(that.options.shortItemTemplate);
             that.templates.emptyPage = that.options.emptyTemplate;
 
+            cIdName = that.options.cIdName;
+            lIdName = that.options.lIdName;
+            rIdName = that.options.rIdName;
+
 
             // begin with one page
-            that.element.html('<div data-role="page">' + that.templates.emptyPage + '</div>');
+            that.element.html('<div data-role="page">' + that.templates.emptyPage + '</div>' + '<div data-role="page">' + that.templates.emptyPage + '</div>' + '<div data-role="page">' + that.templates.emptyPage + '</div>');
             that.element.kendoMobileScrollView({
                 change: function(e) {
+                    if(_lockScrollToFast) {
+                        _lockScrollToFast = false;
+                        _debug("scrollToFast Finished (change)");
+                    } else {
+                        _debug("!!!!!!change");
+                        var prevPage = _currentState.indexOf(_activeId);
+                        var curPage = e.page;
+                        var curId = _activeId = _currentState[e.page];
+                        var curItem = that.getFromCache(curId);
 
-                    var id = that._currentState[e.page];
-                    if (that.element.parents("[data-role=view]").data("kendoMobileView")) that.element.parents("[data-role=view]").data("kendoMobileView").scroller.reset();
-                    that.navigateTo(id);
-                    _debug("Смена состояния, переход на: " + id);
+                        if (curItem !== -1) {
+                            // перелопачиваем все
+                            if (curItem[lIdName] && curPage == 0) {
+                                that.copyPage(1, 2);
+                                that.copyPage(0, 1);
+                                _currentState[0] = curItem[lIdName];
+                                _currentState[1] = curItem[cIdName];
+                                _currentState[2] = curItem[rIdName];
+                                that.scrollToFast(1);
+                                setTimeout(function(){
+                                    that.updatePage(0, that.getItemHtml(curItem[lIdName]));
+                                }, 100);
+
+                            } else if (curItem[rIdName] && curPage == 2) {
+
+                                _currentState[0] = curItem[lIdName];
+                                _currentState[1] = curItem[cIdName];
+                                _currentState[2] = curItem[rIdName];
+
+                                var clone = that.element.find("div > div:nth-child(" + 1 + ")").clone(true);
+                                that.element.find("div > div:nth-child(" + 1 + ")").remove();
+                                _ScrollView.page = 1;
+                                clone.insertAfter(that.element.find("div > div:nth-child(" + 2 + ")"));
+                                _ScrollView.refresh();
+
+
+//                                that.copyPage(1, 0);
+//                                that.copyPage(2, 1);
+//                                that.scrollToFast(1);
+                                setTimeout(function(){
+                                    that.updatePage(2, that.getItemHtml(curItem[rIdName]));
+                                }, 10);
+
+                            }
+
+
+                        }
+                    }
                 }
             });
-            that._ScrollView = that.element.data("kendoMobileScrollView");
+            _ScrollView = that.element.data("kendoMobileScrollView");
 
             // that._checkIntegrityTimer = setInterval($.proxy(that._checkIntegrity, that), 1000);
         },
@@ -51,32 +117,32 @@
         _checkIntegrity: function() {
             var that = this;
             that._checkIntegrityCounter++;
-            if (!that._lock && that._ScrollView.page != that._currentState.indexOf(that._activeId))
-                that.navigateTo(that._activeId);
+            if (!that._lock && _ScrollView.page != _currentState.indexOf(_activeId))
+                that.navigateTo(_activeId);
         },*/
 
         navigateTo: function(id) {
             _debug("Переходим на " + id);
             var that = this;
-            if (id != that._activeId) {
-                    that._activeId = id;
+            if (id != _activeId) {
+                    _activeId = id;
                     var item = that.getFromCache(id);
                     if (item !== -1) {
                         that.refreshStatus(item);
                     } else {
-                        that._currentState = [id];
+                        _currentState = [id];
                         that.regeneratePages();
                     }
             }
 
-            if(!that._eventAssigned) {
+            if(!_eventAssigned) {
                 setTimeout(function(){
                         var view = that.element.parents("[data-role=view]").data("kendoMobileView");
                         if (view) {
                             view.bind("show", function(e){
                                 that.refresh();
                             });
-                            that._eventAssigned = true;
+                            _eventAssigned = true;
                         }
                 }, 50);
             }
@@ -84,34 +150,41 @@
 
         refresh: function(e) {
             _debug("refresh");
-            // var that = e.sender.element.find("[data-role=scrollviewinfinite]").data("kendoScrollViewInfinite");
-            var that = this;
-            that._ScrollView.refresh();
-            that._ScrollView.scrollTo(that._currentState.indexOf(that._activeId));
+            _ScrollView.refresh();
         },
 
         regeneratePages: function() {
 
             var that = this,
                 content = "",
-                activePage = that._currentState.indexOf(that._activeId),
-                activePageHtml = that.getItemHtml(that._activeId);
-            _debug("regeneratePages: " + that._currentState + " акт. стр. " + activePage);
+                activePage = _currentState.indexOf(_activeId),
+                activePageHtml = that.getItemHtml(_activeId);
+            _debug("regeneratePages: " + _currentState + " акт. стр. " + activePage);
 
-            for (var i = 0; i < that._currentState.length; i++) {
+            for (var i = 0; i < _currentState.length; i++) {
                 content = content + '<div data-role="page">' + activePageHtml + '</div>';
             }
-            that._ScrollView.content(content);
+            _ScrollView.content(content);
 
-            that._ScrollView.transition.moveTo({
-                location: -activePage * that._ScrollView.dimension.getSize(),
+            _ScrollView.transition.moveTo({
+                location: -activePage * _ScrollView.dimension.getSize(),
                 duration: 0.1,
                 ease: kendo.fx.Transition.easeOutExpo
             });
 
             that._lock = true;
             _debug("_lock = true");
-            setTimeout($.proxy(that._updateInvisiblePages, that), 10);
+            setTimeout($.proxy(that._updateInvisiblePages, that), 20);
+        },
+
+        scrollToFast: function(page) {
+            _debug("scrollToFast: " + page);
+            _lockScrollToFast = true;
+            _ScrollView.transition.moveTo({
+                location: -page * _ScrollView.dimension.getSize(),
+                duration: 0.1,
+                ease: kendo.fx.Transition.easeOutExpo
+            });
         },
 
         _lock: false,
@@ -119,18 +192,18 @@
             var that = this
             if (that._lock) {
                 var that = this;
-                var activePage = that._currentState.indexOf(that._activeId);
-                if (activePage == that._ScrollView.page) {
-                    that._lock = false;
+                that._lock = false;
+                var activePage = _currentState.indexOf(_activeId);
+                if (activePage == _ScrollView.page) {
                     _debug("_updateInvisiblePages: _lock = false");
-                    for (var i = 0; i < that._currentState.length; i++) {
+                    for (var i = 0; i < _currentState.length; i++) {
                         if (i != activePage)
-                            that.updatePage(i, that.getItemHtml(that._currentState[i]));
+                            that.updatePage(i, that.getItemHtml(_currentState[i]));
                     }
-                    that._ScrollView.refresh();
+                    _ScrollView.refresh();
                 } else {
-                    _debug("_updateInvisiblePages Перевыставляем таймер");
-                    setTimeout($.proxy(that._updateInvisiblePages, that), 10);
+                    // _debug("_updateInvisiblePages Перевыставляем таймер");
+                    setTimeout($.proxy(that._updateInvisiblePages, that), 20);
                 }
             }
         },
@@ -140,112 +213,277 @@
                 item = that.getFromCache(id),
                 html = that.templates.emptyPage;
 
-            _debug("getItemHtml " + id);
+            if (id === -1) {
+                _debug("getItemHtml (empty) " + id);
+                return html;
+            }
+
+
             if (item !== -1) {
-                if (!item.IsShort) return that.templates.fullItem(item);
+                if (!item.IsShort) {
+                    _debug("getItemHtml (full) " + id);
+                    return that.templates.fullItem(item);
+                }
                 html = that.templates.shortItem(item);
             }
             that.updateStoryFromServer(id);
+            _debug("getItemHtml (empty) " + id);
             return html;
         },
 
         refreshStatus: function(item) {
+            _debug("!!!!!!!!!refreshStatus");
             var that = this;
-            var cIdName = that.options.cIdName;
-            var lIdName = that.options.lIdName;
-            var rIdName = that.options.rIdName;
             var newState = [item[cIdName]];
 
-            if (item[cIdName] == that._activeId) {
-                _debug("refreshStatus " + that._currentState + "/" + that._activeId);
+            if (item[cIdName] == _activeId) {
+                _debug("refreshStatus " + _currentState + "/" + _activeId);
                 // Только в этом случае что-то делаем
                 if (item[lIdName]) newState.unshift(item[lIdName]);
                 if (item[rIdName]) newState.push(item[rIdName]);
-                if (newState.toString() != that._currentState.toString()) {
-                    that._currentState = newState;
-                    _debug("refreshStatus ON " + that._currentState + "/" + that._activeId);
+                if (newState.toString() != _currentState.toString()) {
+                    _currentState = newState;
+                    _debug("refreshStatus ON " + _currentState + "/" + _activeId);
                     that.regeneratePages();
                 }
             }
         },
 
-        updateStoryFromServer: function(id) {
-            _debug("updateStoryFromServer " + id);
+        updateStatus: function(item) {
+            _debug("updateStatus begin for " + item[cIdName] + " _currentState: " + _currentState + "/" + _activeId);
             var that = this;
-            $.ajax({
-                url: that.options.url,
-                data: {
-                    id: id
-                },
-                timeout: that.options.timeout,
-                dataType:"jsonp",
-                success: function(data, textStatus, jqXHR) {
-                    that.saveToCache(data);
-                    _debug("updateStoryFromServer OK " + id);
+            var curPage = _currentState.indexOf(item[cIdName]);
+            if(curPage !== -1) {
 
-                    var page = that._currentState.indexOf(data[that.options.cIdName]);
-                    if (page !== -1) {
-                        var html = that.templates.fullItem(data);
-                        that.updatePage(page, html);
-                        that.refreshStatus(data);
+                _debug("updateStatus for " + item[lIdName] + "[" + item[cIdName] + "]" + item[rIdName] + " curPage=" + curPage + " _currentState: " + _currentState + "/" + _activeId);
+
+                that.updatePage(curPage, that.getItemHtml(item[cIdName]));
+
+                if ((curPage == 0 || curPage == 1) && item[rIdName]) {
+                    _debug("OK item[rIdName]=" + item[rIdName]);
+                    _currentState[curPage + 1] = item[rIdName];
+                    that.updatePage(curPage + 1, that.getItemHtml(item[rIdName]));
+                }
+                if ((curPage == 1 || curPage == 2) && item[lIdName]) {
+                    _debug("OK item[lIdName]=" + item[lIdName]);
+                    _currentState[curPage - 1] = item[lIdName];
+                    that.updatePage(curPage - 1, that.getItemHtml(item[lIdName]));
+                }
+
+                if(_activeId == -1) {
+                    _activeId = _currentState[_ScrollView.page];
+                }
+
+                _debug("updateStatus for " + item[cIdName] + " _currentState: " + _currentState + "/" + _activeId);
+
+                // Нужно ли менять _currentState
+                if(item[cIdName] == _activeId) {
+                    var toGo;
+                    if(!item[lIdName]) {
+                        toGo = 0;
+                    } else if(!item[rIdName]) {
+                        toGo = 2;
+                    } else {
+                        toGo = 1;
                     }
 
-                },
-                error: function(xmlhttprequest, textstatus, message) {
-                    _debug("updateStoryFromServer ERROR " + id);
-                    that.options.onError(id);
+                    if(toGo != curPage) {
+                        // да, нужно
+                        // предполагаем, что новостей больше 3х, в противном случае, нужно все усложнять
+                        switch (toGo) {
+                            case 0:
+                                _currentState[0] = item[cIdName];
+                                _currentState[1] = item[rIdName];
+                                var nextItem = that.getFromCache(item[rIdName]);
+                                _currentState[2] = (nextItem === -1) ? -1 : nextItem[rIdName];
+                                break;
+                            case 1:
+                                _currentState[0] = item[lIdName];
+                                _currentState[1] = item[cIdName];
+                                _currentState[2] = item[rIdName];
+                                break;
+                            case 2:
+                                _currentState[2] = item[cIdName];
+                                _currentState[1] = item[lIdName];
+                                var nextItem = that.getFromCache(item[lIdName]);
+                                _currentState[0] = (nextItem === -1) ? -1 : nextItem[lIdName];
+                                break;
+                        }
+
+                        that.updatePage(toGo, that.getItemHtml(_currentState[toGo]));
+                        that.scrollToFast(toGo);
+                        for(var i = 0; i < 3; i++) {
+                            if (i != toGo) that.updatePage(i, that.getItemHtml(_currentState[i]));
+                        }
+
+                        that.refresh();
+                        _debug("new state: " + _currentState + "/" + _activeId + ", page: " + _ScrollView.page);
+                    }
+
+                    that.refresh();
+
                 }
-            });
+            }
+        },
+
+        show: function(id) {
+            var that = this,
+                item = that.getFromCache(id);
+            _activeId = id;
+
+            if(item !== -1) {
+                if(!item[lIdName]) {
+                    // Если первый
+                    _currentState = [item[cIdName], item[rIdName], -1];
+                    that.scrollToFast(0);
+                    var nextItem = that.getFromCache(item[rIdName]);
+                    if (nextItem !== -1) {
+                        _currentState[2] = nextItem[rIdName];
+                    }
+                } else if (!item[rIdName]) {
+                    // Если последний
+                    _currentState = [-1, item[lIdName], item[cIdName]];
+                    that.scrollToFast(2);
+                    var nextItem = that.getFromCache(item[lIdName]);
+                    if (nextItem !== -1) {
+                        _currentState[0] = nextItem[lIdName];
+                    }
+                } else {
+                    // Если из середины
+                    _currentState = [item[lIdName], item[cIdName], item[rIdName]];
+                    that.scrollToFast(1);
+                }
+                that.updateStatus(_itemsCache[id]);
+            } else {
+                _currentState = [-1, id, -1];
+                that.scrollToFast(1);
+                that.updateStoryFromServer(id);
+            }
+
+            _debug("show - " + _currentState + "/" + _activeId);
+
+            if(!_eventAssigned) {
+                setTimeout(function(){
+                    var view = that.element.parents("[data-role=view]").data("kendoMobileView");
+                    if (view) {
+                        view.bind("show", function(e){
+                            that.refresh();
+                        });
+                        _eventAssigned = true;
+                    }
+                }, 50);
+            }
+
+        },
+
+        
+        updateStoryFromServer: function(id) {
+
+            var that = this;
+            if (id != -1 && _requestQueue.indexOf(id) == -1) {
+                _debug("updateStoryFromServer " + id);
+                _requestQueue.push(id);
+                $.ajax({
+                    url: that.options.url,
+                    data: {
+                        id: id
+                    },
+                    timeout: that.options.timeout,
+                    dataType:"jsonp",
+                    success: function(item, textStatus, jqXHR) {
+                        that.saveToCache(item);
+
+                        if(_currentState.indexOf(item[cIdName]) !== -1) {
+                            // запрашиваем заранее на шаг вперед
+                            if(item[lIdName] && !_itemsCache[item[lIdName]]) that.updateStoryFromServer(item[lIdName]);
+                            if(item[rIdName] && !_itemsCache[item[rIdName]]) that.updateStoryFromServer(item[rIdName]);
+                        }
+
+                        _debug("updateStoryFromServer OK " + id);
+
+//                        var page = _currentState.indexOf(item[cIdName]);
+//                        if (page !== -1) {
+//                            var html = that.templates.fullItem(item);
+//                            that.updatePage(page, html);
+//                            that.updateStatus(item);
+//                        }
+                        that.updateStatus(item);
+
+                    },
+                    error: function(xmlhttprequest, textstatus, message) {
+                        _debug("updateStoryFromServer ERROR " + id);
+                        that.options.onError(id);
+                    },
+                    complete: function() {
+                        _requestQueue.splice(_requestQueue.indexOf(id), 1);
+                        _debug("_requestQueue " + _requestQueue);
+                    }
+                });
+            }
         },
 
 
 
         updatePage: function(page, html) {
             _debug("updatePage " + page);
-            page++;
-            this.element.find("div > div:nth-child(" + page + ")").html(html);
+            var divIndex = page + 1;
+
+            var oldText = this.element.find("div > div:nth-child(" + divIndex + ")").text();
+            var newText = $(html).text();
+
+            oldText = $.trim(oldText);
+            newText = $.trim(newText);
+
+            if (oldText != newText) {
+                _debug("updatePage OK " + page);
+                this.element.find("div > div:nth-child(" + divIndex + ")").html(html);
+                this.refresh(0);
+            } else {
+                _debug("updatePage NO " + page);
+            }
+        },
+
+        copyPage: function(source, target) {
+            _debug("copyPage: " + source + "/" + target);
+            var that = this;
+            // _currentState[target] = _currentState[source];
+            source++;
+            that.updatePage(target, that.element.find("div > div:nth-child(" + source + ")").html());
         },
 
         saveToCache: function(item) {
             var that = this;
-            while(that._itemsOrder.length > 10) {
-                var idToDel = that._itemsOrder.pop();
-                delete that._itemsCache[idToDel];
+            while(_itemsCacheOrder.length > 10) {
+                var idToDel = _itemsCacheOrder.pop();
+                delete _itemsCache[idToDel];
             }
             var cIdName = that.options.cIdName;
-            if (!that._itemsCache[item[cIdName]]) {
-                that._itemsCache[item[cIdName]] = item;
-                that._itemsOrder.unshift(item[cIdName]);
+            if (!_itemsCache[item[cIdName]]) {
+                _itemsCache[item[cIdName]] = item;
+                _itemsCacheOrder.unshift(item[cIdName]);
             } else if (!item.IsShort) {
-                that._itemsCache[item[cIdName]] = item;
+                _itemsCache[item[cIdName]] = item;
 
                 // "освежаем" порядок (недавно обновленные элементы в начало)
-                that._itemsOrder.splice(that._itemsOrder.indexOf(item[cIdName]), 1);
-                that._itemsOrder.unshift(item[cIdName]);
+                _itemsCacheOrder.splice(_itemsCacheOrder.indexOf(item[cIdName]), 1);
+                _itemsCacheOrder.unshift(item[cIdName]);
             }
         },
 
         getFromCache: function(id) {
             var that = this;
-            if (that._itemsCache[id]) {
+            if (_itemsCache[id]) {
                 // "освежаем" порядок (недавно запрошенные элементы в начало)
-                that._itemsOrder.splice(that._itemsOrder.indexOf(id), 1);
-                that._itemsOrder.unshift(id);
-                return that._itemsCache[id];
+                _itemsCacheOrder.splice(_itemsCacheOrder.indexOf(id), 1);
+                _itemsCacheOrder.unshift(id);
+                return _itemsCache[id];
             } else {
+                that.updateStoryFromServer(id);
                 return -1;
             }
         },
 
-        _currentState: [], // массив, содержащий текущие страницы ScrollView
-        _activeId: "",     // Id активной в данный момент новости
 
-        _ScrollView: null,
-
-        _itemsCache:[], // TODO реализовать очитску кеша
-        _itemsOrder: [], // Самые свежие в начале, старые, которые можно удалить, в конце
-
-        _eventAssigned: false,
 
 
 

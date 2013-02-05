@@ -9,6 +9,8 @@
 var MTProApp = (function ($, window, tL, newsCategories) {
     var kendoMobileApp,
 
+        templatesLoaded = false,
+
         viewNewsList = "#tabstrip-newsList",
         viewNewsDetails = "#test",
         viewConnectionError = "#connectionError",
@@ -19,6 +21,12 @@ var MTProApp = (function ($, window, tL, newsCategories) {
         elmNewsSelector = "#newsList",
         widgetNewsList,
         dataNewsList,
+
+        viewIssuesList = "#view-issues-list",
+        urlIssuesList = "http://www.digitalwavepublishing.com/json/magazineissues",
+        elmIssuesSelector = "#issuesList",
+        widgetIssuesList,
+        dataIssuesList,
 
         urlDetails = "http://api.maritimeprofessional.com/json/Story",
         elmDetailsSelector = "#sv",
@@ -94,7 +102,7 @@ var MTProApp = (function ($, window, tL, newsCategories) {
                 click: function (e) {
                     // viewModelStory.setFieldsFromListClick(e);
                     // viewModelStoriesList.navigateToStoryId(e.item.find("div.Story").data("storyid"));
-                    widgetDetails.navigateTo(e.item.find("div.Story").data("storyid"));
+                    // widgetDetails.navigateTo(e.item.find("div.Story").data("storyid"));
                 },
                 scrollTreshold: 30, //treshold in pixels
                 appendOnRefresh: true,
@@ -109,10 +117,15 @@ var MTProApp = (function ($, window, tL, newsCategories) {
                 endlessScroll: true,
                 //addition parameters which will be passed to the DataSource's next method
                 endlessScrollParameters: function(first, last) {
-//                        while ($("#newsList").children().length > 12) {
-//                            $("#newsList li:first-child").remove();
-//                        }
-//                        $("#newsList").data("kendoMobileListView").refresh();
+                        if ($(elmNewsSelector).children().length > 12) {
+                            var scroller = kendoMobileApp.view().scroller;
+                            var height = 0;
+                            $(elmNewsSelector + " li:lt(12)").each(function(index, value) {
+                                height = height + $(value).height();
+                            });
+                            scroller.scrollTo(0, - scroller.scrollTop + height);
+                            $(elmNewsSelector + " li:lt(12)").remove();
+                        }
                     return {
                         minid: $(elmNewsSelector).find("li:last-child div.Story").data("storyid")
                     }
@@ -141,6 +154,106 @@ var MTProApp = (function ($, window, tL, newsCategories) {
             widgetDetails = $(elmDetailsSelector).data("kendoScrollViewInfinite");
         },
 
+
+
+        listIssuesInit: function (id) {
+            id = id || 11;
+            if (widgetIssuesList) {
+                widgetIssuesList.destroy();
+                $(elmIssuesSelector).html("");
+                $(elmIssuesSelector).parents("[data-role=view]").data("kendoMobileView").scroller.reset();
+                dataIssuesList = null;
+            }
+
+            dataIssuesList = new kendo.data.DataSource({
+                pageSize: 12,
+                serverPaging: true,
+                transport: {
+                    read: {
+                        url: urlIssuesList, // the remove service url
+                        dataType: "jsonp", // JSONP (JSON with padding) is required for cross-domain AJAX
+                        timeout: globalJsonpTimeout
+                    },
+                    parameterMap: function(options) {
+                        var parameters = {
+                            width:200,
+                            take: 12,
+                            magazineid: id/*,
+                            skip: options.skip,
+                            minid: options.minid,
+                            maxid: options.maxid,
+
+                            categoriesids: newsCategories.getSelectedString()
+                            // page: options.page //next page */
+                        }
+
+                        return parameters;
+                    }
+                },
+                schema: { // describe the result format
+                    data: "Issues" // the data which the data source will be bound to is in the "results" field
+                },
+                error: function(e) {
+                    kendoMobileApp.navigate(viewConnectionError);
+                    setTimeout(function() {
+                        _private.connectionError(function() {
+                            _private.listInit();
+                            kendoMobileApp.navigate(viewIssuesList);
+                        });
+                    }, 1000);
+                },
+                requestStart: function() {
+                    kendoMobileApp.showLoading();
+                },
+                requestEnd: function (e) {
+                    kendoMobileApp.hideLoading();
+                    // var data = e.response.Stories;
+                    // viewModelStoriesList.addStories(data);
+                    // var listView = $("#newsList").data("kendoMobileListView");
+
+                }
+            });
+
+            $(elmIssuesSelector).kendoMobileListView({
+                dataSource: dataIssuesList,
+                template: $("#tpl-issues-list").text(),
+                click: function (e) {
+                    // viewModelStory.setFieldsFromListClick(e);
+                    // viewModelStoriesList.navigateToStoryId(e.item.find("div.Story").data("storyid"));
+                    // widgetDetails.navigateTo(e.item.find("div.Story").data("storyid"));
+                },
+                scrollTreshold: 30, //treshold in pixels
+                appendOnRefresh: true,
+                pullToRefresh: false,
+                //addition parameters which will be passed to the DataSource's read method
+                pullParameters: function(item) { //pass first data item of the ListView
+                    return {
+                        maxid: $(elmNewsSelector).find("li:first-child div.Story").data("storyid") // item.StoryEid,
+                        // page: 1
+                    };
+                },
+                endlessScroll: false,
+                //addition parameters which will be passed to the DataSource's next method
+                endlessScrollParameters: function(first, last) {
+                    if ($(elmNewsSelector).children().length > 12) {
+                        var scroller = kendoMobileApp.view().scroller;
+                        var height = 0;
+                        $(elmNewsSelector + " li:lt(12)").each(function(index, value) {
+                            height = height + $(value).height();
+                        });
+                        scroller.scrollTo(0, - scroller.scrollTop + height);
+                        $(elmNewsSelector + " li:lt(12)").remove();
+                    }
+                    return {
+                        minid: $(elmNewsSelector).find("li:last-child div.Story").data("storyid")
+                    }
+                }
+            });
+
+            widgetIssuesList = $(elmIssuesSelector).data("kendoMobileListView");
+
+        },
+
         connectionError: function(fx) {
             var button = $(elmConnectionErrorSelector).data("kendoMobileButton");
             if (button) button.destroy();
@@ -164,8 +277,11 @@ var MTProApp = (function ($, window, tL, newsCategories) {
 
             tL.loadExtTemplate("templates/_index.tpl.html");
             $(document).bind("TEMPLATES_LOADED", function(e, data) {
+                templatesLoaded = true;
+
                 _private.listInit();
                 _private.detailsInit();
+                _private.listIssuesInit(11);
             });
 
 
@@ -173,6 +289,13 @@ var MTProApp = (function ($, window, tL, newsCategories) {
 
         updateList: function() {
             _private.listInit();
+        },
+
+        updateIssuesList: function(e) {
+            if (templatesLoaded) {
+                var magazineid = e.view.params.magazineid || 11;
+                _private.listIssuesInit(magazineid);
+            }
         },
 
         popoverOpen: function (e) {
@@ -187,6 +310,11 @@ var MTProApp = (function ($, window, tL, newsCategories) {
                 kendoMobileApp.navigate(viewNewsList);
         },
 
+        onShowDetails: function(e) {
+            widgetDetails.show(e.view.params.id);
+        },
+
+
         connectionError: function(fx) {
             _private.connectionError(fx);
         },
@@ -195,7 +323,7 @@ var MTProApp = (function ($, window, tL, newsCategories) {
             widgetDetails.options.url = url;
         },
         widgetNewsList: function() {
-            return widgetDetails;
+            return widgetNewsList;
         },
         widgetDetails: function() {
             return widgetDetails;

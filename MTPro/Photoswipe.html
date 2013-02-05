@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PhotoSwipe</title>
+    <meta name="author" content="Ste Brennan - Code Computerlove - http://www.codecomputerlove.com/" />
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0;" name="viewport" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+
+    <link href="scripts/Photoswipe/examples/styles.css" type="text/css" rel="stylesheet" />
+
+    <link href="scripts/Photoswipe/photoswipe.css" type="text/css" rel="stylesheet" />
+
+    <script type="text/javascript" src="scripts/Photoswipe/lib/klass.min.js"></script>
+    <script type="text/javascript" src="scripts/Photoswipe/code.photoswipe-3.0.5.min.js"></script>
+
+    <style type="text/css">
+        body { padding: 0; margin: 0; background: #DFDCD1; font-family: "Lucida Grande", Helvetica, Arial,Verdana, sans-serif; color: #444340; }
+        h1 { font-size: 1.3em; padding: 15px 10px; margin: 0; }
+        h2 { font-size: 1.1em; padding: 10px; margin: 0; }
+        img { border: none; }
+        a { color: #444340; }
+
+
+        .gallery { list-style: none; padding: 0; margin: 0; }
+        .gallery:after { clear: both; content: "."; display: block; height: 0; visibility: hidden; }
+
+        @media screen and (max-width: 420px) {
+            .gallery li { float: left; width: 50%; }
+        }
+        @media screen and (max-width: 680px) {
+            .gallery li { float: left; width: 33.33333333%; }
+        }
+        @media screen and (max-width: 860px) {
+            .gallery li { float: left; width: 25%; }
+        }
+        @media screen and (max-width: 1024px) {
+            .gallery li { float: left; width: 20%; }
+        }
+        @media screen and (max-width: 1200px) {
+            .gallery li { float: left; width: 16.66666%; }
+        }
+        @media screen and (max-width: 1400px) {
+            .gallery li { float: left; width: 14.27%; }
+        }
+        @media screen and (max-width: 1600px) {
+            .gallery li { float: left; width: 12.5%; }
+        }
+        @media screen and (max-width: 16000px) {
+            .gallery li { float: left; width: 200px; }
+        }
+
+
+        .gallery li a { display: block; margin: 5px; border: 1px solid #3c3c3c; }
+        .gallery li img { display: block; width: 100%; height: auto; }
+    </style>
+
+    <script type="text/javascript">
+
+
+        var QueryString = function () {
+            // This function is anonymous, is executed immediately and
+            // the return value is assigned to QueryString!
+            var query_string = {};
+            var query = window.location.search.substring(1);
+            var vars = query.split("&");
+            for (var i=0;i<vars.length;i++) {
+                var pair = vars[i].split("=");
+                // If first entry with this name
+                if (typeof query_string[pair[0]] === "undefined") {
+                    query_string[pair[0]] = pair[1];
+                    // If second entry with this name
+                } else if (typeof query_string[pair[0]] === "string") {
+                    var arr = [ query_string[pair[0]], pair[1] ];
+                    query_string[pair[0]] = arr;
+                    // If third or later entry with this name
+                } else {
+                    query_string[pair[0]].push(pair[1]);
+                }
+            }
+            return query_string;
+        } ();
+
+
+        var instance;
+        (function(window, PhotoSwipe){
+
+            document.addEventListener('DOMContentLoaded', function(){
+
+                var url = decodeURIComponent(QueryString.url),
+                    totalpages = QueryString.totalpages || 68,
+                    startpage = QueryString.startpage || 1,
+                    originalwidth = QueryString.originalwidth || 921,
+                    thmbwidth = QueryString.thmbwidth || 200;
+
+                if (url === "undefined" || url === undefined) {
+                    url = "http://www.digitalwavepublishing.com/png/page?issueid=496";
+                }
+
+
+                var ul = document.createElement("ul");
+                ul.setAttribute("id", "Gallery");
+                ul.setAttribute("class", "gallery");
+                for (var i = 1; i <= totalpages; i++) {
+                    var li = document.createElement("li");
+
+                    var a = document.createElement("a");
+                    a.setAttribute("href", url + "&width=" + originalwidth + "&page=" + i);
+
+                    var img = document.createElement("img");
+                    img.setAttribute("src", url + "&width=" + thmbwidth + "&page=" + i);
+                    img.setAttribute("alt", "Page: " + i + "/" + totalpages);
+
+                    a.appendChild(img);
+                    li.appendChild(a);
+                    ul.appendChild(li);
+                }
+                document.body.appendChild(ul);
+/*
+                var photos = [];
+                for(var i = 1; i < 68; i++) {
+                    photos.push({caption: "Page " + i, url: 'http://www.digitalwavepublishing.com/nonflash/NWM/maritimeprofessional/201211/display/' + i + '?page=' + i});
+                };
+*/
+                var
+                        options = {
+                            preventHide: false/*,
+                            getImageSource: function(obj){
+                                return obj.url;
+                            },
+                            getImageCaption: function(obj){
+                                return obj.caption;
+                            } ,
+
+                            getToolbar: function() {
+                                return "<a href='index.html' style='display: table-cell; padding: 12px 12px 0 12px; color: white;'>HOME</a>" +
+                                        "<a href='index.html#debugView' style='display: table-cell; padding: 12px 12px 0 12px; color: white;'>DEBUG</a>";
+                            }*/
+                        };
+
+                        instance = PhotoSwipe.attach( window.document.querySelectorAll('#Gallery a'), options );
+
+
+
+                        // onToolbarTap - listen out for when the toolbar is tapped
+//                        instance.addEventHandler(PhotoSwipe.EventTypes.onToolbarTap, function(e){
+//                            if (e.toolbarAction === PhotoSwipe.Toolbar.ToolbarAction.none){
+//                                var element = e.tapTarget;
+//                                console.log("!!!!!!!! Click Detected");
+//                                if (element.href) {
+//                                    window.location.href = element.href;
+//                                }
+//
+//
+//                            }
+//                        });
+
+                setTimeout(function(){
+                    instance.show(startpage - 1);
+                }, 5000);
+                // instance.show(startpage - 1);
+            }, false);
+
+
+        }(window, window.Code.PhotoSwipe));
+
+    </script>
+
+</head>
+<body>
+
+
+</body>
+</html>

@@ -5,6 +5,16 @@
         <meta charset="utf-8" />
         <script src="cordova.js"></script>
         <script src="kendo/js/jquery.min.js"></script>
+        <script>
+            jQuery.fn.swapWith = function(to) {
+                return this.each(function() {
+                    var copy_to = $(to).clone(true);
+                    var copy_from = $(this).clone(true);
+                    $(to).replaceWith(copy_from);
+                    $(this).replaceWith(copy_to);
+                });
+            };
+        </script>
         <script src="kendo/js/kendo.mobile.min.js"></script>
 
         <script src="scripts/newsCategories.js"></script>
@@ -36,12 +46,20 @@
             }
 
         </style>
+
+
+
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+
     </head>
     <body>
 
-    <div data-role="view" id="test">
+    <div data-role="view" id="test" data-show="MTProApp.onShowDetails">
         <div id="sv"></div>
     </div>
+
+
+
 
     <div data-role="view" data-init="MTProApp.updateList" data-title="Maritime Professional News" id="tabstrip-newsList">
         <ul id="newsList"></ul>
@@ -60,14 +78,26 @@
 
     </div>
 
+    <div data-role="view" data-title="Printed Issues" id="view-issues-list" data-show="MTProApp.updateIssuesList">
+        <ul id="issuesList"></ul>
+    </div>
+
     <div data-role="view" data-show="debug" id="debugView">
         <ul id="debugInfo"></ul>
     </div>
+
+        <div data-role="view" id="StoriesListSlider" data-show="scrollTop">
+            <div id="scrollview-container">
+                <div id="scrollview"></div>
+            </div>
+        </div>
 
         <div data-role="view" id="connectionError" data-title="Network error">
             <p>Can't connect to the remote server. </p>
             <a id="refresh">Refresh</a>
         </div>
+
+
 
         <div data-role="layout" data-id="mobile-tabstrip">
             <header data-role="header">
@@ -82,6 +112,7 @@
                     <a href="#tabstrip-newsList" data-icon="home">Home</a>
                     <a href="#test" data-icon="globe">Details</a>
                     <a href="#debugView">Debug</a>
+                    <a href="#view-issues-list">Magazine</a>
                 </div>
             </div>
         </div>
@@ -187,161 +218,10 @@
                     }
                 }
             });
-
-            var viewModelStoriesList = new kendo.observable({
-                Stories: [],
-                StoriesIndex: [],
-                PagesQueue: [],
-                Template: kendo.template($("#story-details-template").html()),
-                getScrollView: function() {
-                    var that = this;
-                    if ($("#scrollview").data("kendoMobileScrollView")) {
-                        return $("#scrollview").data("kendoMobileScrollView");
-                    }
-
-                    $("#scrollview").kendoMobileScrollView({
-                        change: function(e) {
-                            that.populateScrollVewContent(e.page);
-                        },
-                        page: 2
-                    });
-
-                    return $("#scrollview").data("kendoMobileScrollView");
-                },
-                populateScrollVewContent: function(page) {
-                    var that = this;
-                    that.addContentToScrollViewPage(page);
-                    that.addContentToScrollViewPage(page + 1);
-                    that.addContentToScrollViewPage(page - 1);
-                    that.clearContentOfScrollVewPage(page - 2);
-                    that.clearContentOfScrollVewPage(page + 2);
-                    if (scrollerInstance)
-                        scrollerInstance.reset();
-
-                },
-                populateScrollVewContentByEvent: function(e) {
-                    var page = viewModelStoriesList.getScrollView().page;
-
-                    viewModelStoriesList.populateScrollVewContent(page);
-                },
-                clearContentOfScrollVewPage: function(page) {
-                    var divIndex = page + 1;
-                    if (page >= 0 && page <= this.StoriesIndex.length)
-                        $("#scrollview div div:nth-child(" + divIndex + ")").html("");
-                },
-                navigateToStoryId: function(storyId) {
-                    window.app.navigate("#StoriesListSlider");
-                    var that = this;
-                    var page = that.getStoryIdPage(storyId);
-                    if (page != -1) {
-                        that.getScrollView().scrollTo(page);
-                        that.populateScrollVewContent(page);
-                    }
-
-                },
-                getStoryPage: function(story) {
-                    return this.getStoryIdPage(story.StoryEID);
-                },
-                getStoryIdPage: function(storyId){
-                    return this.get("StoriesIndex").indexOf(storyId);
-                },
-                addStory: function(story, flag) {
-                    var that = this;
-                    if (that.get("StoriesIndex").indexOf(story.StoryEID) === -1) {
-                        that.get("Stories").push(story);
-                        that.get("StoriesIndex").push(story.StoryEID);
-                        if (flag) that.initScrollViewContent();
-                    }
-                },
-                addStories: function(stories) {
-                    var that = this;
-                    for (var i = 0; i < stories.length; i++) {
-                        var dataItem = stories[i];
-                        var story = {
-                            IsFull: false,
-                            StoryEID: dataItem.StoryEid,
-                            Title: dataItem.Title,
-                            Author: "",
-                            DatePublished: kendo.toString(new Date(parseInt(dataItem.DatePublished.substr(6))), "dd MMM HH:mm"),
-                            ContentHtml: "<p>" + dataItem.Description + "</p>"
-                        };
-                        that.addStory(story, false);
-                    }
-                    that.initScrollViewContent();
-                },
-                updateStory: function(story) {
-                    var that = this;
-                    var i = that.get("StoriesIndex").indexOf(story.StoryEID);
-                    if (i === -1) {
-                        that.addStory(story, true);
-                    } else {
-                        that.get("Stories").splice(i, 1, story);
-                    }
-                },
-                updateStoryFromServerByPage: function(page) {
-                    var that = this;
-                    if (that.get("StoriesIndex")[page]) {
-                        that.updateStoryFromServer(that.get("StoriesIndex")[page]);
-                    }
-                },
-                updateStoryFromServer: function(storyId) {
-                    var that = this;
-                    $.ajax({
-                        url: "http://api.maritimeprofessional.com/json/Story?id=" + storyId,
-                        dataType:"jsonp",
-                        success: function(data) {
-                            var story = {
-                                IsFull: true,
-                                StoryEID: data.StoryEID,
-                                Title: data.Title,
-                                Author: data.Author,
-                                DatePublished: kendo.toString(new Date(parseInt(data.DatePublished.substr(6))), "dd MMM HH:mm"),
-                                ContentHtml: data.ContentHTML
-                            };
-                            that.updateStory(story);
-                            that.addContentToScrollViewStory(story);
-                        },
-                        error: function(xmlhttprequest, textstatus, message) {
-                            if (message === "timeout") {
-                                window.app.navigate("#tabstrip-newsList");
-                            }
-                        }
-                    });
-                },
-                addContentToScrollViewPage: function(page) {
-                    var that = this;
-                    if (that.Stories[page]) {
-                        var divIndex = page + 1;
-                        $("#scrollview div div:nth-child(" + divIndex + ")").html(that.Template(that.Stories[page]));
-                        if (!that.Stories[page].IsFull) {
-                            that.updateStoryFromServerByPage(page);
-                        }
-                    }
-                },
-                addContentToScrollViewStory: function(story) {
-                    var that = this;
-                    var page = that.getStoryPage(story);
-                    that.addContentToScrollViewPage(page);
-                },
-                initScrollViewContent: function() {
-                    if (viewModelStoriesList.StoriesIndex) {
-                        var count = viewModelStoriesList.StoriesIndex.length;
-                        var content = "";
-                        for (var i = 0; i < count; i++) {
-                            content = content + '<div data-role="page"></div>';
-                        }
-                        viewModelStoriesList.getScrollView().content(content);
-                        // viewModelStoriesList.populateScrollVewContent(that.getScrollView().page);
-                    }
-                },
-                reset: function(){
-                    var that = this;
-                    that.set("StoriesIndex", new kendo.data.ObservableArray());
-                    that.set("Stories", new kendo.data.ObservableArray());
-                }
-            });
-            // kendo.bind($("#StoriesListSlider"), viewModelStoriesList);
 */
+
+            // kendo.bind($("#StoriesListSlider"), viewModelStoriesList);
+
 
 /*
 
@@ -349,7 +229,8 @@
                 fullItemTemplate: $("#full-news-item").html()
             });
             var scrollViewInfinite = $("#sv").data("kendoScrollViewInfinite");
-
+*/
+/*
             var dataSource;
             var listview;
             function newsListInit() {
@@ -400,8 +281,8 @@
                     template: $("#newsList-template").text(),
                     click: function (e) {
                         // viewModelStory.setFieldsFromListClick(e);
-                        // viewModelStoriesList.navigateToStoryId(e.item.find("div.Story").data("storyid"));
-                        scrollViewInfinite.navigateTo(e.item.find("div.Story").data("storyid"));
+                        viewModelStoriesList.navigateToStoryId(e.item.find("div.Story").data("storyid"));
+                        // scrollViewInfinite.navigateTo(e.item.find("div.Story").data("storyid"));
                     },
                     scrollTreshold: 30, //treshold in pixels
                     appendOnRefresh: true,
@@ -443,7 +324,7 @@
                         "<li>" + scrollViewInfinite._checkIntegrityCounter + "</li>";
                 $("#debugInfo").html(debugInfo);
             }
-*/
+
 /*
             var currentStoryId = "";
             var storyTemplate = kendo.template($("#story-template").html());
@@ -546,6 +427,22 @@
                     console.log(e.data.toString());
                 }
             });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         </script>
 
