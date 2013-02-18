@@ -15,12 +15,42 @@
                 });
             };
         </script>
-        <script src="kendo/js/kendo.mobile.min.js"></script>
+        <!-- <script src="kendo/js/kendo.custom.min.js"></script> -->
+
+
+
+        <script src="kendo/src/kendo.core.js"></script>
+        <script src="kendo/src/kendo.data.js"></script>
+        <script src="kendo/src/kendo.binder.js"></script>
+        <script src="kendo/src/kendo.fx.js"></script>
+        <script src="kendo/src/kendo.history.js"></script>
+        <script src="kendo/src/kendo.userevents.js"></script>
+        <script src="kendo/src/kendo.draganddrop.js"></script>
+        <script src="kendo/src/kendo.popup.js"></script>
+        <script src="kendo/src/kendo.mobile.scroller.js"></script>
+        <script src="kendo/src/kendo.mobile.view.js"></script>
+        <script src="kendo/src/kendo.mobile.loader.js"></script>
+        <script src="kendo/src/kendo.mobile.pane.js"></script>
+        <script src="kendo/src/kendo.mobile.application.js"></script>
+        <script src="kendo/src/kendo.mobile.popover.js"></script>
+        <script src="kendo/src/kendo.mobile.actionsheet.js"></script>
+        <script src="kendo/src/kendo.mobile.button.js"></script>
+        <script src="kendo/src/kendo.mobile.buttongroup.js"></script>
+        <script src="kendo/src/kendo.mobile.listview.js"></script>
+        <script src="kendo/src/kendo.mobile.modalview.js"></script>
+        <script src="kendo/src/kendo.mobile.navbar.js"></script>
+        <script src="kendo/src/kendo.mobile.scrollview.js"></script>
+        <script src="kendo/src/kendo.mobile.splitview.js"></script>
+        <script src="kendo/src/kendo.mobile.switch.js"></script>
+        <script src="kendo/src/kendo.mobile.tabstrip.js"></script>
+        <script src="kendo/src/kendo.touch.js"></script>
+
+
 
         <script src="scripts/newsCategories.js"></script>
         <script src="scripts/ScrollViewInfinite.js"></script>
+        <!-- <script src="scripts/newsDetails.js"></script> -->
 
-        <script src="scripts/templateloader.js"></script>
         <script src="scripts/index.html.js"></script>
 
 
@@ -44,6 +74,9 @@
             #scrollview div div, .km-scrollview div div {
                 white-space:normal;
             }
+            .km-scrollview > div > [data-role="page"] {
+                min-height: 200px;
+            }
 
         </style>
 
@@ -54,7 +87,7 @@
     </head>
     <body>
 
-    <div data-role="view" id="test" data-show="MTProApp.onShowDetails">
+    <div data-role="view" id="test" data-init="MTProApp.newsDetailsInit">
         <div id="sv"></div>
     </div>
 
@@ -189,6 +222,59 @@
         <p class="author">#= Author #</p>
 
         #= ContentHTML #
+    </script>
+
+    <script type="text/x-kendo-template" id="news-details-template">
+        <h1>#= Title #</h1>
+        <p class="date">#= kendo.toString(new Date(parseInt(DatePublished.substr(6))), "dd MMM HH:mm") #</p>
+        <p class="author">#= Author #</p>
+
+        # if (images) { #
+        # for (var i = 0; i < images.length; i++) { #
+        <img class="fullImage" src="#= images[i].iPhoneBigImageURL #"  />
+        # } #
+        # } #
+
+        #= ContentHTML #
+    </script>
+
+
+
+
+    <!-- Шаблоны -->
+    <script id="news-list-template" type="text/x-kendo-template">
+        <a href="\\#test?id=#= StoryEid #">
+            <div class="Story"  data-storyid="#= StoryEid #">
+                #if (ImageSrc) { #
+                <img class="pullImage" src="#= ImageSrc #" alt="#= Title #" />
+                # } #
+                <h2>#= Title #</h2>
+                <p class="description">#= Description # <span class="date">#= kendo.toString(new Date(parseInt(DatePublished.substr(6))), "dd MMM HH:mm") #</span></p>
+            </div>
+        </a>
+    </script>
+    <script id="news-details-short-template" type="text/x-kendo-template"><div data-role="page">
+        <div class="Story"  data-storyid="#= StoryEid #">
+            #if (ImageSrc) { #
+            <img class="pullImage" src="#= ImageSrc #" alt="#= Title #" />
+            # } #
+            <h2>#= Title #</h2>
+            <p class="description">#= Description # <span class="date">#= kendo.toString(new Date(parseInt(DatePublished.substr(6))), "dd MMM HH:mm") #</span></p>
+        </div>
+    </div></script>
+
+    <script id="tpl-issues-list" type="text/x-kendo-template">
+
+        <a data-rel="external" href="Photoswipe.html?url=#= encodeURIComponent(PagesUrl) #&totalpages=#= PagesCount #&originalwidth=#= PageWidthOriginal #">
+
+            #if (Cover) { #
+            <img src="#= Cover #" />
+            # } #
+            <h2>#= Feature #</h2>
+            <p>#= IssueDateFormated #</p>
+            <span class="date">#= kendo.toString(new Date(parseInt(IssueDate.substr(6))), "dd MMM HH:mm") #</span>
+
+        </a>
     </script>
 
 

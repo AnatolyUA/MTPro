@@ -11,6 +11,18 @@
             _i++;
         };
 
+    var TRANSFORM_STYLE = kendo.support.transitions.prefix + "Transform",
+        translate;
+    if (kendo.support.hasHW3D) {
+        translate = function(x) {
+            return 'translate3d(-' + x + 'px, 0px, 0px) scale(1)';
+        };
+    } else {
+        translate = function(x) {
+            return 'translate(-' + x + 'px, 0px, 0px) scale(1)';
+        };
+    }
+
     var _currentState = [-1, -1, -1], // массив, содержащий текущие страницы ScrollView
         _activeId = "",     // Id активной в данный момент новости
 
@@ -53,73 +65,74 @@
             rIdName = that.options.rIdName;
 
 
-            // begin with one page
             that.element.html('<div data-role="page">' + that.templates.emptyPage + '</div>' + '<div data-role="page">' + that.templates.emptyPage + '</div>' + '<div data-role="page">' + that.templates.emptyPage + '</div>');
             that.element.kendoMobileScrollView({
                 change: function(e) {
-                    if(_lockScrollToFast) {
-                        _lockScrollToFast = false;
-                        _debug("scrollToFast Finished (change)");
-                    } else {
-                        _debug("!!!!!!change");
+
+
+                    _debug("change Before - " + _currentState + "/" + _activeId);
                         var prevPage = _currentState.indexOf(_activeId);
                         var curPage = e.page;
+
+
+                    if (prevPage != curPage)
+                    {
+                        _debug("!!!!!!change");
+                        _ScrollView.view().scroller.reset();
                         var curId = _activeId = _currentState[e.page];
                         var curItem = that.getFromCache(curId);
 
                         if (curItem !== -1) {
                             // перелопачиваем все
                             if (curItem[lIdName] && curPage == 0) {
-                                that.copyPage(1, 2);
-                                that.copyPage(0, 1);
                                 _currentState[0] = curItem[lIdName];
                                 _currentState[1] = curItem[cIdName];
                                 _currentState[2] = curItem[rIdName];
-                                that.scrollToFast(1);
-                                setTimeout(function(){
-                                    that.updatePage(0, that.getItemHtml(curItem[lIdName]));
-                                }, 100);
-
+                                that.moveTo(1);
                             } else if (curItem[rIdName] && curPage == 2) {
-
                                 _currentState[0] = curItem[lIdName];
                                 _currentState[1] = curItem[cIdName];
                                 _currentState[2] = curItem[rIdName];
-
-                                var clone = that.element.find("div > div:nth-child(" + 1 + ")").clone(true);
-                                that.element.find("div > div:nth-child(" + 1 + ")").remove();
-                                _ScrollView.page = 1;
-                                clone.insertAfter(that.element.find("div > div:nth-child(" + 2 + ")"));
-                                _ScrollView.refresh();
-
-
-//                                that.copyPage(1, 0);
-//                                that.copyPage(2, 1);
-//                                that.scrollToFast(1);
-                                setTimeout(function(){
-                                    that.updatePage(2, that.getItemHtml(curItem[rIdName]));
-                                }, 10);
-
+                                that.moveTo(1);
                             }
-
-
                         }
                     }
+
+                    _debug("change After - " + _currentState + "/" + _activeId);
                 }
             });
             _ScrollView = that.element.data("kendoMobileScrollView");
 
-            // that._checkIntegrityTimer = setInterval($.proxy(that._checkIntegrity, that), 1000);
+            var view = _ScrollView.view();
+
+            if(!_eventAssigned) {
+
+                    if (view) {
+                        view.bind("show", function(e){
+                                that.show(e.view.params.id);
+                            })
+                            .bind("hide", function(){
+                                that.clear();
+                            });
+                        _eventAssigned = true;
+                        // _ScrollView.refresh();
+                    }
+
+            }
+
+
         },
 
-/*        _checkIntegrityTimer: null,
-        _checkIntegrityCounter: 0,
-        _checkIntegrity: function() {
+
+
+        clear: function() {
+            _debug("!!_Clear_");
             var that = this;
-            that._checkIntegrityCounter++;
-            if (!that._lock && _ScrollView.page != _currentState.indexOf(_activeId))
-                that.navigateTo(_activeId);
-        },*/
+            that.updatePage(0, that.templates.emptyPage);
+            that.updatePage(1, that.templates.emptyPage);
+            that.updatePage(2, that.templates.emptyPage);
+
+        },
 
         navigateTo: function(id) {
             _debug("Переходим на " + id);
@@ -148,11 +161,48 @@
             }
         },
 
-        refresh: function(e) {
+        refresh: function() {
             _debug("refresh");
             _ScrollView.refresh();
         },
 
+        moveTo: function(page) {
+            if (page != 0 && page != 1 && page != 2)
+                return;
+
+            var that = this,
+                sv = _ScrollView,
+                cPage = sv.page;
+
+            if(page == cPage)
+                return;
+
+            var pCur = $(sv.inner[0].children[cPage]),
+                first = $(sv.inner[0].children[0]),
+                last = $(sv.inner[0].children[2]);
+
+            if(page == 1) {
+                if (cPage == 2) {
+                    last.after(first);
+                } else {
+                    first.before(last);
+                }
+            } else if (page == 0) {
+                first.before(pCur);
+            } else if (page == 2) {
+                last.after(pCur);
+            }
+
+            sv.inner[0].style[TRANSFORM_STYLE] = translate(sv.dimension.getSize() * page);
+
+            // ?
+
+            sv.page = page;
+            sv.refresh();
+            that._updateInvisiblePages();
+        },
+
+        _lock: false,
         regeneratePages: function() {
 
             var that = this,
@@ -179,33 +229,22 @@
 
         scrollToFast: function(page) {
             _debug("scrollToFast: " + page);
-            _lockScrollToFast = true;
-            _ScrollView.transition.moveTo({
-                location: -page * _ScrollView.dimension.getSize(),
-                duration: 0.1,
-                ease: kendo.fx.Transition.easeOutExpo
-            });
+            _ScrollView.page = page;
+            _ScrollView.refresh();
         },
 
-        _lock: false,
+
         _updateInvisiblePages: function() {
-            var that = this
-            if (that._lock) {
+
                 var that = this;
-                that._lock = false;
-                var activePage = _currentState.indexOf(_activeId);
-                if (activePage == _ScrollView.page) {
+
+
                     _debug("_updateInvisiblePages: _lock = false");
                     for (var i = 0; i < _currentState.length; i++) {
-                        if (i != activePage)
+                        if (i != _currentState.indexOf(_activeId))
                             that.updatePage(i, that.getItemHtml(_currentState[i]));
                     }
                     _ScrollView.refresh();
-                } else {
-                    // _debug("_updateInvisiblePages Перевыставляем таймер");
-                    setTimeout($.proxy(that._updateInvisiblePages, that), 20);
-                }
-            }
         },
 
         getItemHtml: function(id) {
@@ -362,17 +401,7 @@
 
             _debug("show - " + _currentState + "/" + _activeId);
 
-            if(!_eventAssigned) {
-                setTimeout(function(){
-                    var view = that.element.parents("[data-role=view]").data("kendoMobileView");
-                    if (view) {
-                        view.bind("show", function(e){
-                            that.refresh();
-                        });
-                        _eventAssigned = true;
-                    }
-                }, 50);
-            }
+
 
         },
 
@@ -426,9 +455,8 @@
 
         updatePage: function(page, html) {
             _debug("updatePage " + page);
-            var divIndex = page + 1;
 
-            var oldText = this.element.find("div > div:nth-child(" + divIndex + ")").text();
+            var oldText = $(_ScrollView.inner[0].children[page]).text();
             var newText = $(html).text();
 
             oldText = $.trim(oldText);
@@ -436,10 +464,10 @@
 
             if (oldText != newText) {
                 _debug("updatePage OK " + page);
-                this.element.find("div > div:nth-child(" + divIndex + ")").html(html);
-                this.refresh(0);
+                $(_ScrollView.inner[0].children[page]).html(html);
+                _ScrollView.refresh();
             } else {
-                _debug("updatePage NO " + page);
+                _debug("updatePage NO NEEDED " + page);
             }
         },
 
@@ -499,8 +527,8 @@
 
             // templates
             fullItemTemplate: "<h1>#= Title #</h1><h1>#= StoryEID #</h1> #= ContentHTML #",
-            shortItemTemplate: "<h1>#= StoryEID #</h1><div class='km-loader' style='margin-top:200px; text-align: center; padding: 100px'><span class='km-loading km-spin'></span></div>",
-            emptyTemplate: "<div class='km-loader' style='margin-top:200px; text-align: center; padding: 100px'><span class='km-loading km-spin'></span></div>",
+            shortItemTemplate: '<h1>#= StoryEID #</h1><div class="km-loader"><span class="km-loading km-spin"></span></div>',
+            emptyTemplate: '<div class="km-loader"><span class="km-loading km-spin"></span></div>',
 
             // Id fields names
             cIdName: "StoryEID", // current / active

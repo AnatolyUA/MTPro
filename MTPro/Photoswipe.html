@@ -11,7 +11,7 @@
     <link href="scripts/Photoswipe/photoswipe.css" type="text/css" rel="stylesheet" />
 
     <script type="text/javascript" src="scripts/Photoswipe/lib/klass.min.js"></script>
-    <script type="text/javascript" src="scripts/Photoswipe/code.photoswipe-3.0.5.min.js"></script>
+    <script type="text/javascript" src="scripts/Photoswipe/code.photoswipe-3.0.5.js"></script>
 
     <style type="text/css">
         body { padding: 0; margin: 0; background: #DFDCD1; font-family: "Lucida Grande", Helvetica, Arial,Verdana, sans-serif; color: #444340; }
@@ -96,7 +96,7 @@
                     url = "http://www.digitalwavepublishing.com/png/page?issueid=496";
                 }
 
-
+/*
                 var ul = document.createElement("ul");
                 ul.setAttribute("id", "Gallery");
                 ul.setAttribute("class", "gallery");
@@ -114,16 +114,16 @@
                     li.appendChild(a);
                     ul.appendChild(li);
                 }
-                document.body.appendChild(ul);
-/*
+                document.body.appendChild(ul); */
+
                 var photos = [];
-                for(var i = 1; i < 68; i++) {
-                    photos.push({caption: "Page " + i, url: 'http://www.digitalwavepublishing.com/nonflash/NWM/maritimeprofessional/201211/display/' + i + '?page=' + i});
+                for(var i = 1; i <= totalpages; i++) {
+                    photos.push({caption: "Page: " + i + "/" + totalpages, url: url + "&width=" + originalwidth + "&page=" + i});
                 };
-*/
+
                 var
                         options = {
-                            preventHide: false/*,
+                            preventHide: false,
                             getImageSource: function(obj){
                                 return obj.url;
                             },
@@ -132,32 +132,29 @@
                             } ,
 
                             getToolbar: function() {
-                                return "<a href='index.html' style='display: table-cell; padding: 12px 12px 0 12px; color: white;'>HOME</a>" +
-                                        "<a href='index.html#debugView' style='display: table-cell; padding: 12px 12px 0 12px; color: white;'>DEBUG</a>";
-                            }*/
+                                return "<a href='index.html#view-issues-list' style='display: table-cell; padding: 12px 12px 0 12px; color: white;'>Back to Issues List</a>";
+                            }
                         };
 
-                        instance = PhotoSwipe.attach( window.document.querySelectorAll('#Gallery a'), options );
+                        instance = PhotoSwipe.attach( photos, options ); //window.document.querySelectorAll('#Gallery a')
 
 
 
                         // onToolbarTap - listen out for when the toolbar is tapped
-//                        instance.addEventHandler(PhotoSwipe.EventTypes.onToolbarTap, function(e){
-//                            if (e.toolbarAction === PhotoSwipe.Toolbar.ToolbarAction.none){
-//                                var element = e.tapTarget;
-//                                console.log("!!!!!!!! Click Detected");
-//                                if (element.href) {
-//                                    window.location.href = element.href;
-//                                }
-//
-//
-//                            }
-//                        });
+                        instance.addEventHandler(PhotoSwipe.EventTypes.onToolbarTap, function(e){
+                            if (e.toolbarAction === PhotoSwipe.Toolbar.ToolbarAction.none){
+                                var element = e.tapTarget;
+                                console.log("!!!!!!!! Click Detected");
+                                if (element.href) {
+                                    window.location.href = element.href;
+                                }
 
-                setTimeout(function(){
-                    instance.show(startpage - 1);
-                }, 5000);
-                // instance.show(startpage - 1);
+
+                            }
+                        });
+
+
+                instance.show(startpage - 1);
             }, false);
 
 
